@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Centro de Servicio — Cinépolis</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -19,6 +20,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:13px;min-height:100vh;}
+/* LOGIN */
 #loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 0%,rgba(245,197,24,0.08) 0%,transparent 60%),var(--bg);}
 .login-box{background:var(--panel);border:1px solid var(--border2);border-radius:16px;padding:40px 48px;width:100%;max-width:420px;box-shadow:0 32px 80px rgba(0,0,0,0.5);}
 .login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;}
@@ -33,6 +35,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:13px
 .login-err{color:var(--red);font-size:12px;margin-top:8px;text-align:center;min-height:18px;}
 .login-hint{margin-top:20px;padding-top:16px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);line-height:1.9;}
 .login-hint span{color:var(--text2);}
+/* APP */
 #app{display:none;}
 .header{background:linear-gradient(135deg,#080d1c,#0a1428,#060a12);border-bottom:2px solid var(--gold);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;box-shadow:0 4px 32px rgba(245,197,24,0.08);}
 .hlogo{width:34px;height:34px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:var(--ff);font-weight:700;font-size:16px;color:#060a12;margin-right:12px;}
@@ -50,20 +53,25 @@ body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:13px
 .ntab:hover{color:var(--text);}
 .ntab.active{color:var(--gold);border-bottom-color:var(--gold);}
 .nbadge{display:inline-block;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;margin-left:5px;vertical-align:middle;}
-.main{padding:24px;max-width:1500px;margin:0 auto;}
+.main{padding:20px 24px;max-width:1600px;margin:0 auto;}
 .tab{display:none;}.tab.active{display:block;}
+/* KPI CARDS */
 .kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px;}
 .kcard{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px;position:relative;overflow:hidden;}
 .kcard::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
-.kcard.gold::before{background:var(--gold);}.kcard.red::before{background:var(--red);}.kcard.orange::before{background:var(--orange);}.kcard.green::before{background:var(--green);}.kcard.cyan::before{background:var(--cyan);}.kcard.purple::before{background:var(--purple);}
+.kcard.gold::before{background:var(--gold);}.kcard.red::before{background:var(--red);}.kcard.orange::before{background:var(--orange);}.kcard.green::before{background:var(--green);}.kcard.cyan::before{background:var(--cyan);}.kcard.purple::before{background:var(--purple);}.kcard.blue::before{background:var(--blue);}
 .klabel{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;}
 .kval{font-family:var(--ff);font-size:32px;font-weight:700;line-height:1;}
-.kcard.gold .kval{color:var(--gold);}.kcard.red .kval{color:var(--red);}.kcard.orange .kval{color:var(--orange);}.kcard.green .kval{color:var(--green);}.kcard.cyan .kval{color:var(--cyan);}.kcard.purple .kval{color:var(--purple);}
+.kcard.gold .kval{color:var(--gold);}.kcard.red .kval{color:var(--red);}.kcard.orange .kval{color:var(--orange);}.kcard.green .kval{color:var(--green);}.kcard.cyan .kval{color:var(--cyan);}.kcard.purple .kval{color:var(--purple);}.kcard.blue .kval{color:var(--blue);}
+/* CHARTS */
 .cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+.cgrid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
 .ccard{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;}
 .ctitle{font-family:var(--ff);font-size:14px;font-weight:600;margin-bottom:4px;}
 .csub{font-size:10px;color:var(--text2);margin-bottom:12px;}
 .cwrap{position:relative;height:180px;}
+.cwrap2{position:relative;height:150px;}
+/* FORMS */
 .form-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:28px;}
 .form-title{font-family:var(--ff);font-size:18px;font-weight:700;margin-bottom:4px;}
 .form-sub{font-size:11px;color:var(--text2);margin-bottom:24px;}
@@ -82,10 +90,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:13px
 .submit-btn{margin-top:20px;background:var(--gold);color:#060a12;border:none;border-radius:8px;padding:13px 32px;font-size:14px;font-family:var(--ff);font-weight:700;letter-spacing:1px;cursor:pointer;transition:background .2s;}
 .submit-btn:hover{background:var(--gold2);}
 .success-msg{display:none;margin-top:16px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:12px 16px;color:var(--green);font-size:13px;}
-.filters{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
-.flabel{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
+/* FILTERS & TABLES */
+.fbar,.filters{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+.flabel{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
 select,input[type=text]{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;font-family:var(--fb);padding:6px 10px;outline:none;transition:border-color .2s;}
 select:focus,input[type=text]:focus{border-color:var(--gold);}
+input[type=text]{width:180px;}
 .rcount{font-size:11px;color:var(--text3);margin-left:auto;}
 .twrap{background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
 .tscroll{overflow-x:auto;max-height:520px;overflow-y:auto;}
@@ -95,6 +105,7 @@ th{background:var(--panel2);color:var(--text2);font-size:10px;font-weight:600;te
 td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 tr:hover td{background:rgba(255,255,255,.02);}
 tr:last-child td{border-bottom:none;}
+/* BADGES */
 .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap;}
 .br{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);}
 .bo{background:rgba(249,115,22,.15);color:var(--orange);border:1px solid rgba(249,115,22,.3);}
@@ -104,6 +115,28 @@ tr:last-child td{border-bottom:none;}
 .bp{background:rgba(139,92,246,.15);color:var(--purple);border:1px solid rgba(139,92,246,.3);}
 .bw{background:rgba(139,149,171,.1);color:var(--text2);border:1px solid var(--border);}
 .nodata{text-align:center;padding:48px;color:var(--text3);font-size:13px;}
+/* PAGINACION */
+.pag{display:flex;align-items:center;justify-content:flex-end;gap:6px;padding:10px 14px;border-top:1px solid var(--border);}
+.pbtn{width:28px;height:28px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.pbtn:hover,.pbtn.active{border-color:var(--gold);color:var(--gold);}
+.pinfo{font-size:11px;color:var(--text3);}
+/* DASHBOARD KPI (mantenimiento) */
+.abn{display:flex;align-items:center;gap:12px;border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:12px 16px;margin-bottom:16px;background:rgba(239,68,68,.06);}
+.abn.orange{border-color:rgba(249,115,22,.3);background:rgba(249,115,22,.06);}
+.abt{font-weight:600;color:var(--red);font-size:13px;}
+.abn.orange .abt{color:var(--orange);}
+.abd{color:var(--text2);font-size:11px;margin-top:2px;}
+.sc{display:inline-block;padding:2px 7px;border-radius:3px;font-size:11px;font-weight:600;min-width:38px;text-align:center;}
+.sz{background:rgba(239,68,68,.2);color:var(--red);}.sl{background:rgba(249,115,22,.15);color:var(--orange);}.sok{background:rgba(34,197,94,.1);color:var(--green);}
+.igrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+.icard{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;}
+.ititle{font-family:var(--ff);font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+.dot-r{width:8px;height:8px;background:var(--red);border-radius:50%;}.dot-g{width:8px;height:8px;background:var(--gold);border-radius:50%;}
+.live{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:1px;}
+.ldot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(1.3);}}
+.dbadge{font-size:11px;color:var(--text2);background:var(--panel);padding:5px 12px;border-radius:4px;border:1px solid var(--border);}
+/* MODAL */
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;}
 .modal-bg.open{display:flex;}
 .modal{background:var(--panel);border:1px solid var(--border2);border-radius:14px;padding:28px;max-width:620px;width:100%;margin:16px;max-height:90vh;overflow-y:auto;}
@@ -116,7 +149,6 @@ tr:last-child td{border-bottom:none;}
 .modal-photo{width:100%;border-radius:8px;margin-top:8px;max-height:260px;object-fit:cover;}
 .status-select{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:13px;font-family:var(--fb);padding:8px 12px;outline:none;width:100%;}
 .save-status-btn{margin-top:10px;background:var(--gold);color:#060a12;border:none;border-radius:6px;padding:9px 20px;font-size:13px;font-family:var(--ff);font-weight:700;cursor:pointer;}
-.save-status-btn:hover{background:var(--gold2);}
 .nota-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:13px;font-family:var(--fb);padding:8px 12px;outline:none;margin-top:6px;resize:vertical;min-height:60px;}
 .btn-primary{padding:9px 18px;background:var(--gold);color:#060a12;border:none;border-radius:7px;font-size:13px;font-family:var(--ff);font-weight:700;cursor:pointer;}
 .btn-primary:hover{background:var(--gold2);}
@@ -125,11 +157,44 @@ tr:last-child td{border-bottom:none;}
 .btn-sm{padding:4px 10px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:11px;cursor:pointer;font-family:var(--fb);transition:all .2s;}
 .btn-sm:hover{border-color:var(--gold);color:var(--gold);}
 .btn-sm.danger:hover{border-color:var(--red);color:var(--red);}
-@media(max-width:900px){.cgrid{grid-template-columns:1fr;}.form-grid{grid-template-columns:1fr;}.form-group.full{grid-column:1;}}
+.btn{padding:5px 12px;border-radius:4px;border:none;font-size:12px;font-family:var(--fb);font-weight:500;cursor:pointer;transition:all .2s;}
+.btn-ghost2{background:transparent;border:1px solid var(--border2);color:var(--text2);}
+.btn-ghost2:hover{border-color:var(--text2);color:var(--text);}
+/* SEPARADOR DE SECCIÓN */
+.section-header{font-family:var(--ff);font-size:15px;font-weight:600;margin-bottom:12px;color:var(--text2);letter-spacing:.5px;}
+@media(max-width:900px){.cgrid{grid-template-columns:1fr;}.cgrid2{grid-template-columns:1fr;}.kgrid{grid-template-columns:repeat(2,1fr);}.igrid{grid-template-columns:1fr;}.form-grid{grid-template-columns:1fr;}.form-group.full{grid-column:1;}}
+/* ACTUALIZADOR */
+.upd-zone{border:2px dashed var(--border2);border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;position:relative;background:var(--panel);}
+.upd-zone:hover,.upd-zone.drag{border-color:var(--gold);background:rgba(245,197,24,.04);}
+.upd-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upd-icon{font-size:36px;margin-bottom:12px;}
+.upd-title{font-family:var(--ff);font-size:17px;font-weight:700;margin-bottom:6px;}
+.upd-sub{font-size:12px;color:var(--text2);}
+.upd-progress{display:none;margin-top:20px;}
+.upd-bar-wrap{background:var(--bg3);border-radius:20px;height:8px;overflow:hidden;margin:10px 0;}
+.upd-bar{height:100%;background:linear-gradient(90deg,var(--gold),var(--orange));border-radius:20px;width:0%;transition:width .3s;}
+.upd-step{font-size:12px;color:var(--text2);margin-bottom:4px;}
+.upd-result{display:none;margin-top:20px;border-radius:8px;padding:16px 20px;font-size:13px;}
+.upd-result.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:var(--green);}
+.upd-result.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red);}
+.upd-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:16px;}
+.upd-kpi{background:var(--bg3);border-radius:6px;padding:10px;text-align:center;}
+.upd-kpi-val{font-family:var(--ff);font-size:22px;font-weight:700;color:var(--gold);}
+.upd-kpi-lbl{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+/* TOP 10 */
+.top10-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px;}
+.top10-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+.top10-row:last-child{border-bottom:none;}
+.top10-rank{font-family:var(--ff);font-size:20px;font-weight:700;min-width:28px;text-align:center;}
+.top10-info{flex:1;min-width:0;}
+.top10-serie{font-family:var(--ff);color:var(--gold);font-size:12px;font-weight:600;}
+.top10-cine{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.top10-val{font-family:var(--ff);font-size:15px;font-weight:700;color:var(--green);white-space:nowrap;}
 </style>
 </head>
 <body>
 
+<!-- LOGIN -->
 <div id="loginScreen">
   <div class="login-box">
     <div class="login-logo">
@@ -143,20 +208,23 @@ tr:last-child td{border-bottom:none;}
     <button class="login-btn" onclick="doLogin()">INGRESAR</button>
     <div class="login-err" id="loginErr"></div>
     <div class="login-hint">
-      <span>cine1 / cine123</span> — Cinépolis<br>
-      <span>manto1 / manto123</span> — Mantenimiento<br>
-      <span>admin / admin123</span> — Administrador
+      <span>cine1 / cine123</span> — Cinépolis (solo ve sus incidencias)<br>
+      <span>manto1 / manto123</span> — Mantenimiento (todas las incidencias)<br>
+      <span>admin / admin123</span> — Admin (dashboard completo)
     </div>
   </div>
 </div>
 
+<!-- APP -->
 <div id="app">
   <header class="header">
     <div style="display:flex;align-items:center;">
       <div class="hlogo">CP</div>
-      <div><div class="htitle">CENTRO DE SERVICIO</div><div class="hsub">Cinépolis · Gestión de Incidencias</div></div>
+      <div><div class="htitle" id="headerTitle">CENTRO DE SERVICIO</div><div class="hsub" id="headerSub">Cinépolis · Gestión de Incidencias</div></div>
     </div>
     <div class="huser">
+      <span class="live" id="liveBadge" style="display:none;"><div class="ldot"></div>En vivo</span>
+      <span class="dbadge" id="fechaBadge" style="display:none;">—</span>
       <span class="hbadge" id="roleBadge"></span>
       <span style="font-size:12px;color:var(--text2);" id="userLabel"></span>
       <button class="logout-btn" onclick="doLogout()">Salir</button>
@@ -166,6 +234,7 @@ tr:last-child td{border-bottom:none;}
   <div class="main" id="mainContent"></div>
 </div>
 
+<!-- MODAL INCIDENCIA -->
 <div class="modal-bg" id="modalBg" onclick="closeModal(event)">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-title"><span>Detalle de Incidencia</span><button class="modal-close" onclick="closeModal()">✕</button></div>
@@ -173,6 +242,7 @@ tr:last-child td{border-bottom:none;}
   </div>
 </div>
 
+<!-- MODAL USUARIO -->
 <div class="modal-bg" id="modalUserBg" onclick="closeUserModal(event)">
   <div class="modal" onclick="event.stopPropagation()" style="max-width:460px;">
     <div class="modal-title"><span id="userModalTitle">Usuario</span><button class="modal-close" onclick="closeUserModal()">✕</button></div>
@@ -181,8 +251,20 @@ tr:last-child td{border-bottom:none;}
 </div>
 
 <script>
-var currentUser=null,editingIncId=null,editingUserId=null,charts={},photoBase64='';
+// ═══════════════════════════════════════════════════════════════
+//  DATOS DEL DASHBOARD (actualizados por el script Python)
+// ═══════════════════════════════════════════════════════════════
+const D = {"kpi":{"total_incidencias_abiertas":0,"urgentes":0,"back_order":0,"en_diagnostico":0,"mas_30_dias":0,"mas_90_dias":0,"alertas_venta_cero":0,"romel_total":0,"romel_no_en_sistema":0,"maquinas_en_ruta":0},"incidencias":[],"venta_alerta":[],"romel":[],"by_region":[],"nombre_count":{},"clasif_count":{},"dias_ranges":{"0-30 días":0,"31-60 días":0,"61-90 días":0,"+90 días":0},"top_priority":[],"semana_cols_last4":[],"fecha_actualizacion":"Sin actualizar"};
 
+// ═══════════════════════════════════════════════════════════════
+//  ESTADO DE LA APLICACIÓN
+// ═══════════════════════════════════════════════════════════════
+var currentUser=null, editingIncId=null, editingUserId=null, charts={}, photoBase64='';
+const PS=50;
+var incF=[], prioF=[], cineF=[];
+var incPg=1, prioPg=1;
+
+// ─── Usuarios y incidencias locales (cines) ───────────────────
 function getDefaultUsers(){return[
   {id:'u1',username:'admin',pass:'admin123',rol:'admin',nombre:'Administrador General'},
   {id:'u2',username:'manto1',pass:'manto123',rol:'mantenimiento',nombre:'Técnico Mantenimiento'},
@@ -192,11 +274,10 @@ function getDefaultUsers(){return[
 ];}
 
 function getDefaultIncs(){return[
-  {id:'INC-001',cine:'CINÉPOLIS PLAZA ARAGÓN',serie:'TWD2776',tipo:'OPERANDO PARCIALMENTE',prioridad:'Urgente',descripcion:'Botón de inicio roto, máquina opera intermitente.',foto:'',estado:'Abierta',usuario:'cine1',nombreUsuario:'Cinépolis Plaza Aragón',fecha:'2026-04-10T09:15:00',nota:''},
-  {id:'INC-002',cine:'CINÉPOLIS ECATEPEC',serie:'MON-057008S',tipo:'VENTA CERO',prioridad:'Urgente',descripcion:'Máquina encendida sin registro de ventas. Lleva 3 días sin venta.',foto:'',estado:'En proceso',usuario:'cine2',nombreUsuario:'Cinépolis Ecatepec',fecha:'2026-04-11T14:30:00',nota:'Falla en sensor del monedero. Refacción solicitada.'},
+  {id:'INC-001',cine:'CINÉPOLIS PLAZA ARAGÓN',serie:'TWD2776',tipo:'OPERANDO PARCIALMENTE',prioridad:'Urgente',descripcion:'Botón de inicio roto.',foto:'',estado:'Abierta',usuario:'cine1',nombreUsuario:'Cinépolis Plaza Aragón',fecha:'2026-04-10T09:15:00',nota:''},
+  {id:'INC-002',cine:'CINÉPOLIS ECATEPEC',serie:'MON-057008S',tipo:'VENTA CERO',prioridad:'Urgente',descripcion:'Máquina sin registro de ventas desde hace 3 días.',foto:'',estado:'En proceso',usuario:'cine2',nombreUsuario:'Cinépolis Ecatepec',fecha:'2026-04-11T14:30:00',nota:'Falla en sensor de monedero. Refacción solicitada.'},
   {id:'INC-003',cine:'CINÉPOLIS FORUM BUENAVISTA',serie:'MX875520230069',tipo:'IMAGEN / ESTÉTICA',prioridad:'Normal',descripcion:'Forro del sillón completamente desgastado.',foto:'',estado:'Resuelta',usuario:'cine1',nombreUsuario:'Cinépolis Plaza Aragón',fecha:'2026-04-08T11:00:00',nota:'Forro reemplazado el 12/04.'},
   {id:'INC-004',cine:'CINÉPOLIS TECAMAC',serie:'03-10139',tipo:'MONEDERO / COBRO',prioridad:'Normal',descripcion:'Monedero no acepta billetes de $50.',foto:'',estado:'Abierta',usuario:'cine1',nombreUsuario:'Cinépolis Plaza Aragón',fecha:'2026-04-12T10:00:00',nota:''},
-  {id:'INC-005',cine:'CINÉPOLIS ECATEPEC',serie:'WLA000067212',tipo:'FUERA DE SERVICIO',prioridad:'Urgente',descripcion:'Máquina completamente apagada, no enciende.',foto:'',estado:'En proceso',usuario:'cine2',nombreUsuario:'Cinépolis Ecatepec',fecha:'2026-04-12T16:20:00',nota:'Revisando fuente de poder.'},
 ];}
 
 function initStorage(){
@@ -210,7 +291,9 @@ function saveIncs(i){localStorage.setItem('cp_inc',JSON.stringify(i));}
 
 initStorage();
 
-// ── LOGIN ──
+// ═══════════════════════════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════════════════════════
 function doLogin(){
   var u=document.getElementById('loginUser').value.trim().toLowerCase();
   var p=document.getElementById('loginPass').value;
@@ -238,30 +321,67 @@ function doLogout(){
 document.getElementById('loginPass').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
 document.getElementById('loginUser').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
 
-// ── INIT APP ──
+// ═══════════════════════════════════════════════════════════════
+//  INIT APP
+// ═══════════════════════════════════════════════════════════════
 function initApp(){
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('app').style.display='block';
+
   var rolMap={cinepolis:'cine',mantenimiento:'mant',admin:'admin'};
   var rolLabel={cinepolis:'CINÉPOLIS',mantenimiento:'MANTENIMIENTO',admin:'ADMINISTRADOR'};
   var badge=document.getElementById('roleBadge');
   badge.textContent=rolLabel[currentUser.rol]||currentUser.rol.toUpperCase();
   badge.className='hbadge '+(rolMap[currentUser.rol]||'bw');
   document.getElementById('userLabel').textContent=currentUser.nombre;
+
+  // Header según rol
+  if(currentUser.rol==='admin'){
+    document.getElementById('headerTitle').textContent='DASHBOARD OPERATIVO';
+    document.getElementById('headerSub').textContent='Cinépolis · Gestión de Máquinas y Servicios';
+    document.getElementById('liveBadge').style.display='flex';
+    document.getElementById('fechaBadge').style.display='block';
+    document.getElementById('fechaBadge').textContent=D.fecha_actualizacion||'—';
+  }
+
   buildNav();
-  renderTab('inicio');
+  // Tab inicial
+  var firstTab = currentUser.rol==='cinepolis' ? 'inicio' : currentUser.rol==='mantenimiento' ? 'incidencias_cines' : 'dashboard';
+  renderTab(firstTab);
 }
 
 function buildNav(){
   var rol=currentUser.rol;
-  var tabs=[
-    {id:'inicio',label:'🏠 Inicio',roles:['cinepolis','mantenimiento','admin']},
-    {id:'nueva',label:'➕ Nueva Incidencia',roles:['cinepolis','admin']},
-    {id:'lista',label:'📋 Incidencias',badge:true,roles:['cinepolis','mantenimiento','admin']},
-    {id:'usuarios',label:'👥 Usuarios',roles:['admin']},
-  ];
+  var tabs=[];
+  if(rol==='cinepolis'){
+    tabs=[
+      {id:'inicio',label:'🏠 Mi Panel'},
+      {id:'nueva',label:'➕ Reportar Incidencia'},
+      {id:'lista',label:'📋 Mis Incidencias',badge:true},
+    ];
+  } else if(rol==='mantenimiento'){
+    tabs=[
+      {id:'incidencias_cines',label:'📩 Incidencias Reportadas',badge:true},
+      {id:'dashboard_resumen',label:'📊 Resumen General'},
+      {id:'dashboard_incidencias',label:'🔧 Incidencias BD'},
+      {id:'dashboard_prioridad',label:'⚡ Por Prioridad'},
+      {id:'dashboard_venta',label:'📈 Alerta Venta'},
+      {id:'dashboard_cinepolis',label:'🎯 Reporte Cinépolis'},
+    ];
+  } else { // admin
+    tabs=[
+      {id:'dashboard',label:'📊 Resumen General'},
+      {id:'incidencias_cines',label:'📩 Incidencias Cines',badge:true},
+      {id:'dashboard_incidencias',label:'🔧 Incidencias BD'},
+      {id:'dashboard_prioridad',label:'⚡ Por Prioridad'},
+      {id:'dashboard_venta',label:'📈 Alerta Venta'},
+      {id:'dashboard_cinepolis',label:'🎯 Reporte Cinépolis'},
+      {id:'actualizador',label:'⚡ Actualizar Datos'},
+      {id:'usuarios',label:'👥 Usuarios'},
+    ];
+  }
   var nav=document.getElementById('mainNav');
-  nav.innerHTML=tabs.filter(function(t){return t.roles.indexOf(rol)>=0;}).map(function(t){
+  nav.innerHTML=tabs.map(function(t){
     return '<div class="ntab" data-tab="'+t.id+'">'+t.label+(t.badge?'<span class="nbadge" id="nbTotal">0</span>':'')+'</div>';
   }).join('');
   nav.querySelectorAll('.ntab').forEach(function(t){
@@ -281,70 +401,71 @@ function renderTab(tab){
   charts={};
   mc.innerHTML='<div id="tab-'+tab+'" class="tab active"></div>';
   var div=document.getElementById('tab-'+tab);
-  if(tab==='inicio')renderInicio(div);
-  else if(tab==='nueva')renderNueva(div);
-  else if(tab==='lista')renderLista(div);
-  else if(tab==='usuarios')renderUsuarios(div);
+  if(tab==='inicio') renderInicio(div);
+  else if(tab==='nueva') renderNueva(div);
+  else if(tab==='lista') renderLista(div);
+  else if(tab==='usuarios') renderUsuarios(div);
+  else if(tab==='incidencias_cines') renderIncidenciasCines(div);
+  else if(tab==='dashboard') renderDashboard(div);
+  else if(tab==='dashboard_resumen') renderDashboard(div);
+  else if(tab==='dashboard_incidencias') renderDashboardIncidencias(div);
+  else if(tab==='dashboard_prioridad') renderDashboardPrioridad(div);
+  else if(tab==='dashboard_venta') renderDashboardVenta(div);
+  else if(tab==='dashboard_cinepolis') renderDashboardCinepolis(div);
+  else if(tab==='actualizador') renderActualizador(div);
+  // Activar tab en nav si fue llamado programáticamente
+  var nav=document.getElementById('mainNav');
+  nav.querySelectorAll('.ntab').forEach(function(t){
+    if(t.dataset.tab===tab) t.classList.add('active');
+  });
 }
 
-// ── INICIO ──
+// ═══════════════════════════════════════════════════════════════
+//  VISTAS DE CINE (solo sus incidencias)
+// ═══════════════════════════════════════════════════════════════
 function renderInicio(container){
-  var rol=currentUser.rol;
-  var incs=getIncs();
-  if(rol==='cinepolis')incs=incs.filter(function(i){return i.usuario===currentUser.username;});
+  // Cine SOLO ve sus propias incidencias — filtro estricto por username
+  var incs=getIncs().filter(function(i){return i.usuario===currentUser.username;});
   var total=incs.length;
   var abiertas=incs.filter(function(i){return i.estado==='Abierta';}).length;
   var proceso=incs.filter(function(i){return i.estado==='En proceso';}).length;
   var urgentes=incs.filter(function(i){return i.prioridad==='Urgente'&&i.estado!=='Resuelta';}).length;
   var resueltas=incs.filter(function(i){return i.estado==='Resuelta';}).length;
 
-  var chartsHtml='';
-  if(rol!=='cinepolis'){
-    chartsHtml='<div class="cgrid"><div class="ccard"><div class="ctitle">Por Estado</div><div class="csub">Distribución actual</div><div class="cwrap"><canvas id="cEstado"></canvas></div></div><div class="ccard"><div class="ctitle">Por Tipo de Falla</div><div class="csub">Categorías reportadas</div><div class="cwrap"><canvas id="cTipo"></canvas></div></div><div class="ccard"><div class="ctitle">Prioridad</div><div class="csub">Normal vs Urgente</div><div class="cwrap"><canvas id="cPrio"></canvas></div></div></div>';
-  }
-
-  container.innerHTML='<div class="kgrid">'
+  container.innerHTML=
+    '<div class="kgrid">'
     +'<div class="kcard gold"><div class="klabel">Total</div><div class="kval">'+total+'</div></div>'
     +'<div class="kcard red"><div class="klabel">Abiertas</div><div class="kval">'+abiertas+'</div></div>'
     +'<div class="kcard orange"><div class="klabel">En Proceso</div><div class="kval">'+proceso+'</div></div>'
     +'<div class="kcard red"><div class="klabel">Urgentes</div><div class="kval">'+urgentes+'</div></div>'
     +'<div class="kcard green"><div class="klabel">Resueltas</div><div class="kval">'+resueltas+'</div></div>'
-    +'</div>'+chartsHtml
-    +'<div style="font-family:var(--ff);font-size:15px;font-weight:600;margin-bottom:12px;color:var(--text2);">ÚLTIMAS INCIDENCIAS</div>'
+    +'</div>'
+    +'<div class="section-header">MIS ÚLTIMAS INCIDENCIAS</div>'
     +'<div class="twrap"><div class="tscroll"><table>'
-    +'<thead><tr><th>ID</th><th>Cine / Conjunto</th><th>Serie</th><th>Tipo</th><th>Prioridad</th><th>Estado</th><th>Reportado por</th><th>Fecha</th></tr></thead>'
+    +'<thead><tr><th>ID</th><th>Cine</th><th>Serie</th><th>Tipo</th><th>Prioridad</th><th>Estado</th><th>Fecha</th></tr></thead>'
     +'<tbody id="tbRecientes"></tbody></table></div></div>';
-
-  if(rol!=='cinepolis') buildCharts(incs);
 
   var recientes=[].concat(incs).sort(function(a,b){return new Date(b.fecha)-new Date(a.fecha);}).slice(0,10);
   var tb=document.getElementById('tbRecientes');
-  if(!recientes.length){tb.innerHTML='<tr><td colspan="8" class="nodata">No hay incidencias registradas</td></tr>';return;}
+  if(!recientes.length){tb.innerHTML='<tr><td colspan="7" class="nodata">No tienes incidencias registradas. ¡Usa "Reportar Incidencia" para crear una!</td></tr>';return;}
   tb.innerHTML=recientes.map(function(r){
-    var cn=r.cine.length>28?r.cine.substring(0,26)+'…':r.cine;
-    var nu=(r.nombreUsuario||r.usuario);nu=nu.length>22?nu.substring(0,20)+'…':nu;
-    return '<tr style="cursor:pointer;" onclick="openModal(\''+r.id+'\')"><td style="font-family:var(--ff);color:var(--gold);font-weight:600;">'+r.id+'</td><td title="'+r.cine+'">'+cn+'</td><td style="color:var(--cyan);">'+r.serie+'</td><td>'+r.tipo+'</td><td>'+prioBadge(r.prioridad)+'</td><td>'+estadoBadge(r.estado)+'</td><td style="color:var(--text2);font-size:11px;">'+nu+'</td><td style="color:var(--text2);">'+formatDate(r.fecha)+'</td></tr>';
+    var cn=r.cine.length>26?r.cine.substring(0,24)+'…':r.cine;
+    return '<tr style="cursor:pointer;" onclick="openModal(\''+r.id+'\')">'
+      +'<td style="font-family:var(--ff);color:var(--gold);font-weight:600;">'+r.id+'</td>'
+      +'<td title="'+r.cine+'">'+cn+'</td>'
+      +'<td style="color:var(--cyan);">'+r.serie+'</td>'
+      +'<td>'+r.tipo+'</td>'
+      +'<td>'+prioBadge(r.prioridad)+'</td>'
+      +'<td>'+estadoBadge(r.estado)+'</td>'
+      +'<td style="color:var(--text2);">'+formatDate(r.fecha)+'</td>'
+      +'</tr>';
   }).join('');
 }
 
-function buildCharts(incs){
-  var CO={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1f2b45',titleColor:'#e8eaf0',bodyColor:'#8b95ab',borderColor:'#2a3550',borderWidth:1}},scales:{x:{ticks:{color:'#8b95ab',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#8b95ab',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}}}};
-  var DOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'right',labels:{color:'#8b95ab',font:{size:10},boxWidth:10,padding:8}},tooltip:{backgroundColor:'#1f2b45',titleColor:'#e8eaf0',bodyColor:'#8b95ab'}}};
-
-  var estados=['Abierta','En proceso','Resuelta'];
-  charts['e']=new Chart(document.getElementById('cEstado'),{type:'doughnut',data:{labels:estados,datasets:[{data:estados.map(function(e){return incs.filter(function(i){return i.estado===e;}).length;}),backgroundColor:['rgba(239,68,68,.8)','rgba(249,115,22,.8)','rgba(34,197,94,.8)'],borderColor:'#111827',borderWidth:2}]},options:DOpts});
-
-  var tipos=[...new Set(incs.map(function(i){return i.tipo;}))];
-  charts['t']=new Chart(document.getElementById('cTipo'),{type:'bar',data:{labels:tipos.map(function(t){return t.length>16?t.substring(0,14)+'…':t;}),datasets:[{data:tipos.map(function(t){return incs.filter(function(i){return i.tipo===t;}).length;}),backgroundColor:'rgba(59,130,246,.65)',borderColor:'#3b82f6',borderWidth:1,borderRadius:3}]},options:CO});
-
-  charts['p']=new Chart(document.getElementById('cPrio'),{type:'doughnut',data:{labels:['Normal','Urgente'],datasets:[{data:[incs.filter(function(i){return i.prioridad==='Normal';}).length,incs.filter(function(i){return i.prioridad==='Urgente';}).length],backgroundColor:['rgba(139,149,171,.5)','rgba(239,68,68,.8)'],borderColor:'#111827',borderWidth:2}]},options:DOpts});
-}
-
-// ── NUEVA INCIDENCIA ──
 function renderNueva(container){
   photoBase64='';
   container.innerHTML='<div class="form-card">'
-    +'<div class="form-title">Levantar Nueva Incidencia</div>'
+    +'<div class="form-title">Reportar Nueva Incidencia</div>'
     +'<div class="form-sub">Completa todos los campos obligatorios (*)</div>'
     +'<div class="form-grid">'
     +'<div class="form-group"><label class="form-label">Cine / Conjunto *</label><input class="form-input" id="fCine" type="text" placeholder="Ej. CINÉPOLIS PLAZA ARAGÓN"></div>'
@@ -379,30 +500,34 @@ function submitInc(){
   var desc=document.getElementById('fDesc').value.trim();
   if(!cine||!serie||!tipo||!desc){alert('Completa todos los campos obligatorios (*)');return;}
   var incs=getIncs();
-  var newId='INC-'+String(incs.length+1).padStart(3,'0');
+  var newId='INC-'+String(Date.now()).slice(-6);
   incs.unshift({id:newId,cine:cine,serie:serie,tipo:tipo,prioridad:prioridad,descripcion:desc,foto:photoBase64,estado:'Abierta',usuario:currentUser.username,nombreUsuario:currentUser.nombre,fecha:new Date().toISOString(),nota:''});
   saveIncs(incs);
   updateBadge();
   ['fCine','fSerie','fDesc'].forEach(function(id){document.getElementById(id).value='';});
   document.getElementById('fTipo').value='';
   document.getElementById('fPrioridad').value='Normal';
-  if(document.getElementById('photoPreview')){document.getElementById('photoPreview').style.display='none';document.getElementById('photoPlaceholder').style.display='block';document.getElementById('fFoto').value='';}
+  if(document.getElementById('photoPreview')){
+    document.getElementById('photoPreview').style.display='none';
+    document.getElementById('photoPlaceholder').style.display='block';
+    document.getElementById('fFoto').value='';
+  }
   photoBase64='';
   var msg=document.getElementById('successMsg');msg.style.display='block';
   setTimeout(function(){msg.style.display='none';},4000);
 }
 
-// ── LISTA ──
 function renderLista(container){
-  container.innerHTML='<div class="filters">'
+  container.innerHTML='<div style="background:rgba(6,182,212,.07);border:1px solid rgba(6,182,212,.2);border-radius:8px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:var(--cyan);">📋 Mostrando solo las incidencias que tú has reportado</div>'
+    +'<div class="filters">'
     +'<span class="flabel">Estado</span><select id="fEstado" onchange="refreshLista()"><option value="">Todos</option><option>Abierta</option><option>En proceso</option><option>Resuelta</option></select>'
     +'<span class="flabel">Tipo</span><select id="fTipoF" onchange="refreshLista()"><option value="">Todos</option><option>OPERANDO PARCIALMENTE</option><option>FUERA DE SERVICIO</option><option>IMAGEN / ESTÉTICA</option><option>MONEDERO / COBRO</option><option>PANTALLA / DISPLAY</option><option>VENTA CERO</option><option>OTRO</option></select>'
     +'<span class="flabel">Prioridad</span><select id="fPrioF" onchange="refreshLista()"><option value="">Todas</option><option>Urgente</option><option>Normal</option></select>'
-    +'<input type="text" id="fBuscar" placeholder="Buscar cine, serie, ID..." oninput="refreshLista()" style="width:190px;">'
+    +'<input type="text" id="fBuscar" placeholder="Buscar serie, ID..." oninput="refreshLista()">'
     +'<button onclick="clearListFilters()" style="background:transparent;border:1px solid var(--border2);color:var(--text2);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-family:var(--fb);">Limpiar</button>'
     +'<span class="rcount" id="listaCount"></span></div>'
     +'<div class="twrap"><div class="tscroll"><table>'
-    +'<thead><tr><th>ID</th><th>Cine / Conjunto</th><th>Serie</th><th>Tipo</th><th>Prioridad</th><th>Estado</th><th>Reportado por</th><th>Fecha</th><th></th></tr></thead>'
+    +'<thead><tr><th>ID</th><th>Cine</th><th>Serie</th><th>Tipo</th><th>Prioridad</th><th>Estado</th><th>Fecha</th><th></th></tr></thead>'
     +'<tbody id="tbLista"></tbody></table></div></div>';
   refreshLista();
 }
@@ -412,22 +537,27 @@ function refreshLista(){
   var tip=document.getElementById('fTipoF')?document.getElementById('fTipoF').value:'';
   var pri=document.getElementById('fPrioF')?document.getElementById('fPrioF').value:'';
   var bus=(document.getElementById('fBuscar')?document.getElementById('fBuscar').value:'').toLowerCase();
-  var rol=currentUser.rol;
   var data=getIncs().filter(function(r){
-    if(rol==='cinepolis'&&r.usuario!==currentUser.username)return false;
-    if(est&&r.estado!==est)return false;
-    if(tip&&r.tipo!==tip)return false;
-    if(pri&&r.prioridad!==pri)return false;
-    if(bus&&[r.cine,r.serie,r.id,r.tipo,r.nombreUsuario||''].join(' ').toLowerCase().indexOf(bus)<0)return false;
+    // Cine SIEMPRE filtrado por su propio username — no puede ver otras
+    if(currentUser.rol==='cinepolis'&&r.usuario!==currentUser.username) return false;
+    if(est&&r.estado!==est) return false;
+    if(tip&&r.tipo!==tip) return false;
+    if(pri&&r.prioridad!==pri) return false;
+    if(bus&&[r.cine,r.serie,r.id,r.tipo].join(' ').toLowerCase().indexOf(bus)<0) return false;
     return true;
   });
   var lc=document.getElementById('listaCount');if(lc)lc.textContent=data.length+' registros';
   var tb=document.getElementById('tbLista');if(!tb)return;
-  if(!data.length){tb.innerHTML='<tr><td colspan="9" class="nodata">Sin resultados</td></tr>';return;}
+  if(!data.length){tb.innerHTML='<tr><td colspan="8" class="nodata">Sin resultados</td></tr>';return;}
   tb.innerHTML=data.map(function(r){
     var cn=r.cine.length>24?r.cine.substring(0,22)+'…':r.cine;
-    var nu=(r.nombreUsuario||r.usuario);nu=nu.length>20?nu.substring(0,18)+'…':nu;
-    return '<tr><td style="font-family:var(--ff);color:var(--gold);font-weight:600;">'+r.id+'</td><td title="'+r.cine+'">'+cn+'</td><td style="color:var(--cyan);">'+r.serie+'</td><td>'+r.tipo+'</td><td>'+prioBadge(r.prioridad)+'</td><td>'+estadoBadge(r.estado)+'</td><td style="color:var(--text2);font-size:11px;" title="'+(r.nombreUsuario||r.usuario)+'">'+nu+'</td><td style="color:var(--text2);">'+formatDate(r.fecha)+'</td><td><button onclick="openModal(\''+r.id+'\')" style="background:var(--panel3);border:1px solid var(--border2);color:var(--text);padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;font-family:var(--fb);">Ver</button></td></tr>';
+    return '<tr><td style="font-family:var(--ff);color:var(--gold);font-weight:600;">'+r.id+'</td>'
+      +'<td title="'+r.cine+'">'+cn+'</td>'
+      +'<td style="color:var(--cyan);">'+r.serie+'</td>'
+      +'<td>'+r.tipo+'</td><td>'+prioBadge(r.prioridad)+'</td><td>'+estadoBadge(r.estado)+'</td>'
+      +'<td style="color:var(--text2);">'+formatDate(r.fecha)+'</td>'
+      +'<td><button onclick="openModal(\''+r.id+'\')" style="background:var(--panel3);border:1px solid var(--border2);color:var(--text);padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;font-family:var(--fb);">Ver</button></td>'
+      +'</tr>';
   }).join('');
 }
 
@@ -437,27 +567,100 @@ function clearListFilters(){
   refreshLista();
 }
 
-// ── MODAL DETALLE ──
+// ═══════════════════════════════════════════════════════════════
+//  VISTA DE MANTENIMIENTO/ADMIN: incidencias reportadas por cines
+// ═══════════════════════════════════════════════════════════════
+function renderIncidenciasCines(container){
+  var data=getIncs(); // mantenimiento y admin ven TODAS
+  container.innerHTML='<div class="section-header">INCIDENCIAS REPORTADAS POR LOS CINES</div>'
+    +'<div class="filters">'
+    +'<span class="flabel">Estado</span><select id="fcEstado" onchange="refreshIncCines()"><option value="">Todos</option><option>Abierta</option><option>En proceso</option><option>Resuelta</option></select>'
+    +'<span class="flabel">Prioridad</span><select id="fcPrio" onchange="refreshIncCines()"><option value="">Todas</option><option>Urgente</option><option>Normal</option></select>'
+    +'<input type="text" id="fcBuscar" placeholder="Buscar cine, serie, ID..." oninput="refreshIncCines()">'
+    +'<button onclick="clearCinesFilters()" style="background:transparent;border:1px solid var(--border2);color:var(--text2);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-family:var(--fb);">Limpiar</button>'
+    +'<span class="rcount" id="cinesCount"></span></div>'
+    +'<div class="twrap"><div class="tscroll"><table>'
+    +'<thead><tr><th>ID</th><th>Cine / Conjunto</th><th>Serie</th><th>Tipo</th><th>Prioridad</th><th>Estado</th><th>Reportado por</th><th>Fecha</th><th></th></tr></thead>'
+    +'<tbody id="tbCinesLista"></tbody></table></div></div>';
+  refreshIncCines();
+}
+
+function refreshIncCines(){
+  var est=document.getElementById('fcEstado')?document.getElementById('fcEstado').value:'';
+  var pri=document.getElementById('fcPrio')?document.getElementById('fcPrio').value:'';
+  var bus=(document.getElementById('fcBuscar')?document.getElementById('fcBuscar').value:'').toLowerCase();
+  var data=getIncs().filter(function(r){
+    if(est&&r.estado!==est) return false;
+    if(pri&&r.prioridad!==pri) return false;
+    if(bus&&[r.cine,r.serie,r.id,r.tipo,r.nombreUsuario||''].join(' ').toLowerCase().indexOf(bus)<0) return false;
+    return true;
+  });
+  var lc=document.getElementById('cinesCount');if(lc)lc.textContent=data.length+' registros';
+  var tb=document.getElementById('tbCinesLista');if(!tb)return;
+  if(!data.length){tb.innerHTML='<tr><td colspan="9" class="nodata">Sin resultados</td></tr>';return;}
+  tb.innerHTML=data.map(function(r){
+    var cn=r.cine.length>24?r.cine.substring(0,22)+'…':r.cine;
+    var nu=(r.nombreUsuario||r.usuario);
+    var canDel=currentUser.rol==='admin';
+    return '<tr>'
+      +'<td style="font-family:var(--ff);color:var(--gold);font-weight:600;">'+r.id+'</td>'
+      +'<td title="'+r.cine+'">'+cn+'</td>'
+      +'<td style="color:var(--cyan);">'+r.serie+'</td>'
+      +'<td>'+r.tipo+'</td><td>'+prioBadge(r.prioridad)+'</td><td>'+estadoBadge(r.estado)+'</td>'
+      +'<td style="color:var(--text2);font-size:11px;">'+nu+'</td>'
+      +'<td style="color:var(--text2);">'+formatDate(r.fecha)+'</td>'
+      +'<td style="display:flex;gap:5px;">'
+      +'<button onclick="openModal(\''+r.id+'\')" style="background:var(--panel3);border:1px solid var(--border2);color:var(--text);padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;font-family:var(--fb);">Gestionar</button>'
+      +(canDel?'<button onclick="deleteIncDirect(\''+r.id+'\')" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red);padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer;font-family:var(--fb);" title="Eliminar incidencia">🗑</button>':'')
+      +'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+function clearCinesFilters(){
+  ['fcEstado','fcPrio'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  var fb=document.getElementById('fcBuscar');if(fb)fb.value='';
+  refreshIncCines();
+}
+
+// Eliminar incidencia directamente desde la lista (solo admin)
+function deleteIncDirect(id){
+  if(currentUser.rol!=='admin') return;
+  var incs=getIncs();
+  var r=incs.find(function(x){return x.id===id;});
+  if(!r) return;
+  if(!confirm('¿Eliminar la incidencia '+id+' de '+r.cine+'?\nEsta acción no se puede deshacer.')) return;
+  saveIncs(incs.filter(function(x){return x.id!==id;}));
+  updateBadge();
+  refreshIncCines();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MODAL INCIDENCIA (mantenimiento puede cambiar estado)
+// ═══════════════════════════════════════════════════════════════
 function openModal(id){
   var incs=getIncs();
   var r=incs.find(function(x){return x.id===id;});
   if(!r)return;
+  // Cine solo puede abrir sus propias incidencias
+  if(currentUser.rol==='cinepolis'&&r.usuario!==currentUser.username) return;
   editingIncId=id;
   var canEdit=currentUser.rol==='mantenimiento'||currentUser.rol==='admin';
+  var canDelete=currentUser.rol==='admin';
   var statusOptions=['Abierta','En proceso','Resuelta'].map(function(s){return '<option '+(r.estado===s?'selected':'')+'>'+s+'</option>';}).join('');
   document.getElementById('modalContent').innerHTML=
     '<div class="detail-row"><span class="detail-key">ID</span><span class="detail-val" style="font-family:var(--ff);color:var(--gold);font-weight:700;">'+r.id+'</span></div>'
-    +'<div class="detail-row"><span class="detail-key">Cine / Conjunto</span><span class="detail-val">'+r.cine+'</span></div>'
+    +'<div class="detail-row"><span class="detail-key">Cine</span><span class="detail-val">'+r.cine+'</span></div>'
     +'<div class="detail-row"><span class="detail-key">Serie</span><span class="detail-val" style="color:var(--cyan);">'+r.serie+'</span></div>'
     +'<div class="detail-row"><span class="detail-key">Tipo de Falla</span><span class="detail-val">'+r.tipo+'</span></div>'
     +'<div class="detail-row"><span class="detail-key">Prioridad</span><span class="detail-val">'+prioBadge(r.prioridad)+'</span></div>'
-    +'<div class="detail-row"><span class="detail-key">Estado</span><span class="detail-val">'+estadoBadge(r.estado)+'</span></div>'
+    +'<div class="detail-row"><span class="detail-key">Estado Actual</span><span class="detail-val">'+estadoBadge(r.estado)+'</span></div>'
     +'<div class="detail-row"><span class="detail-key">Reportado por</span><span class="detail-val" style="color:var(--cyan);">'+(r.nombreUsuario||r.usuario)+'</span></div>'
     +'<div class="detail-row"><span class="detail-key">Fecha</span><span class="detail-val">'+formatDate(r.fecha)+'</span></div>'
     +'<div class="detail-row" style="flex-direction:column;gap:6px;"><span class="detail-key">Descripción</span><span class="detail-val" style="color:var(--text2);line-height:1.6;">'+r.descripcion+'</span></div>'
     +(r.foto?'<img src="'+r.foto+'" class="modal-photo" style="margin-top:12px;">':'')
     +(r.nota?'<div class="detail-row" style="margin-top:14px;flex-direction:column;gap:4px;"><span class="detail-key" style="color:var(--gold);">Nota de Mantenimiento</span><span class="detail-val" style="color:var(--text2);line-height:1.6;">'+r.nota+'</span></div>':'')
-    +(canEdit?'<div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px;"><div class="detail-key" style="margin-bottom:8px;color:var(--gold);">Actualizar</div><select class="status-select" id="modalStatus">'+statusOptions+'</select><textarea class="nota-input" id="modalNota" placeholder="Nota de mantenimiento...">'+(r.nota||'')+'</textarea><button class="save-status-btn" onclick="saveStatus()">Guardar Cambios</button></div>':'');
+    +(canEdit?'<div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px;"><div class="detail-key" style="margin-bottom:8px;color:var(--gold);">Actualizar Estado</div><select class="status-select" id="modalStatus">'+statusOptions+'</select><textarea class="nota-input" id="modalNota" placeholder="Nota de mantenimiento...">'+(r.nota||'')+'</textarea><div style="display:flex;gap:10px;margin-top:10px;align-items:center;"><button class="save-status-btn" onclick="saveStatus()" style="margin-top:0;">Guardar Cambios</button>'+(canDelete?'<button onclick="deleteInc(\''+r.id+'\')" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);color:var(--red);padding:9px 16px;border-radius:6px;font-size:12px;font-family:var(--fb);cursor:pointer;">🗑 Eliminar Incidencia</button>':'')+'</div></div>':'');
   document.getElementById('modalBg').classList.add('open');
 }
 
@@ -470,6 +673,17 @@ function saveStatus(){
   saveIncs(incs);
   updateBadge();
   closeModal();
+  refreshIncCines();
+  refreshLista();
+}
+
+function deleteInc(id){
+  if(!confirm('¿Eliminar esta incidencia permanentemente? Esta acción no se puede deshacer.')) return;
+  var incs=getIncs().filter(function(x){return x.id!==id;});
+  saveIncs(incs);
+  updateBadge();
+  closeModal();
+  refreshIncCines();
   refreshLista();
 }
 
@@ -479,7 +693,9 @@ function closeModal(e){
   editingIncId=null;
 }
 
-// ── USUARIOS ──
+// ═══════════════════════════════════════════════════════════════
+//  USUARIOS (solo admin)
+// ═══════════════════════════════════════════════════════════════
 function renderUsuarios(container){
   var users=getUsers();
   var rolBadge={cinepolis:'<span class="badge bc">Cinépolis</span>',mantenimiento:'<span class="badge bo">Mantenimiento</span>',admin:'<span class="badge bp">Admin</span>'};
@@ -498,8 +714,7 @@ function renderUsuarios(container){
 
 function openUserModal(userId){
   editingUserId=userId||null;
-  var users=getUsers();
-  var u=userId?users.find(function(x){return x.id===userId;}):null;
+  var u=userId?getUsers().find(function(x){return x.id===userId;}):null;
   document.getElementById('userModalTitle').textContent=u?'Editar Usuario':'Nuevo Usuario';
   document.getElementById('userModalContent').innerHTML=
     '<div class="form-group" style="margin-bottom:14px;"><label class="form-label">Nombre completo</label><input class="form-input" id="uNombre" type="text" value="'+(u?u.nombre:'')+'" placeholder="Nombre del usuario"></div>'
@@ -548,13 +763,616 @@ function closeUserModal(e){
   editingUserId=null;
 }
 
-// ── HELPERS ──
+// ═══════════════════════════════════════════════════════════════
+//  DASHBOARD OPERATIVO (mantenimiento + admin)
+// ═══════════════════════════════════════════════════════════════
+const CHARTOPT={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1f2b45',titleColor:'#e8eaf0',bodyColor:'#8b95ab',borderColor:'#2a3550',borderWidth:1}},scales:{x:{ticks:{color:'#8b95ab',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#8b95ab',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}}}};
+
+function renderDashboard(container){
+  var k=D.kpi;
+  container.innerHTML=
+    '<div class="kgrid">'
+    +'<div class="kcard gold"><div class="klabel">Máquinas en Ruta</div><div class="kval">'+(k.maquinas_en_ruta||0).toLocaleString()+'</div><div style="font-size:10px;color:var(--text3);">Total activas en Cinépolis</div></div>'
+    +'<div class="kcard red"><div class="klabel">Incidencias Abiertas</div><div class="kval">'+(k.total_incidencias_abiertas||0).toLocaleString()+'</div><div style="font-size:10px;color:var(--text3);">Status: Abierta</div></div>'
+    +'<div class="kcard red"><div class="klabel">Urgentes</div><div class="kval">'+(k.urgentes||0).toLocaleString()+'</div><div style="font-size:10px;color:var(--text3);">Atención inmediata</div></div>'
+    +'<div class="kcard orange"><div class="klabel">Back Order</div><div class="kval">'+(k.back_order||0).toLocaleString()+'</div><div style="font-size:10px;color:var(--text3);">En espera de refacción</div></div>'
+    +'<div class="kcard purple"><div class="klabel">+90 Días Abiertas</div><div class="kval">'+(k.mas_90_dias||0).toLocaleString()+'</div><div style="font-size:10px;color:var(--text3);">Críticas por tiempo</div></div>'
+    +'<div class="kcard orange"><div class="klabel">Alerta Venta Cero</div><div class="kval">'+(k.alertas_venta_cero||0).toLocaleString()+'</div><div style="font-size:10px;color:var(--text3);">2+ semanas sin venta</div></div>'
+    +'<div class="kcard cyan"><div class="klabel">Reporte Cinépolis</div><div class="kval">'+(k.romel_total||0).toLocaleString()+'</div><div style="font-size:10px;color:var(--text3);">Máquinas reportadas</div></div>'
+    +'<div class="kcard red"><div class="klabel">Sin Incidencia Nuestra</div><div class="kval">'+(k.romel_no_en_sistema||0).toLocaleString()+'</div><div style="font-size:10px;color:var(--text3);">Cinépolis reportó, nosotros no</div></div>'
+    +'</div>'
+    +'<div class="cgrid">'
+    +'<div class="ccard"><div class="ctitle">Incidencias por Región</div><div class="csub">Total abiertas por región</div><div class="cwrap"><canvas id="cRegion"></canvas></div></div>'
+    +'<div class="ccard"><div class="ctitle">Tipo de Incidencia</div><div class="csub">Distribución por nombre</div><div class="cwrap"><canvas id="cTipo"></canvas></div></div>'
+    +'<div class="ccard"><div class="ctitle">Antigüedad de Incidencias</div><div class="csub">Días desde apertura</div><div class="cwrap"><canvas id="cDias"></canvas></div></div>'
+    +'</div>'
+    +'<div class="cgrid2">'
+    +'<div class="ccard"><div class="ctitle">Clasificación</div><div class="csub">Estado de diagnóstico</div><div class="cwrap2"><canvas id="cClasif"></canvas></div></div>'
+    +'<div class="ccard"><div class="ctitle">Urgentes por Región</div><div class="csub">Solo incidencias urgentes</div><div class="cwrap2"><canvas id="cUrg"></canvas></div></div>'
+    +'</div>'
+    +'<div class="top10-grid">'
+    +'<div class="ccard"><div class="ctitle">🏆 Top 10 — Mayor Venta en Riesgo</div><div class="csub">Incidencias abiertas ordenadas por venta promedio semanal</div><div id="top10Left"></div></div>'
+    +'<div class="ccard"><div class="ctitle">⏰ Top 10 — Más Antiguas (+90 días)</div><div class="csub">Incidencias abiertas con más días sin resolverse</div><div id="top10Right"></div></div>'
+    +'</div>';
+  buildDashCharts();
+  buildTop10();
+}
+
+function buildDashCharts(){
+  if(!D.by_region||!D.by_region.length) return;
+  var byR=[...D.by_region].sort(function(a,b){return b.total-a.total;});
+  charts['region']=new Chart(document.getElementById('cRegion'),{type:'bar',data:{labels:byR.map(function(r){return r.Region;}),datasets:[{data:byR.map(function(r){return r.total;}),backgroundColor:byR.map(function(r){return r.urgentes>0?'rgba(239,68,68,0.65)':'rgba(59,130,246,0.55)';}),borderColor:byR.map(function(r){return r.urgentes>0?'#ef4444':'#3b82f6';}),borderWidth:1,borderRadius:3}]},options:CHARTOPT});
+
+  var tk=Object.keys(D.nombre_count).slice(0,7);
+  var tv=tk.map(function(k){return D.nombre_count[k];});
+  var tc=['rgba(245,197,24,0.8)','rgba(59,130,246,0.8)','rgba(34,197,94,0.8)','rgba(249,115,22,0.8)','rgba(139,92,246,0.8)','rgba(6,182,212,0.8)','rgba(239,68,68,0.8)'];
+  charts['tipo']=new Chart(document.getElementById('cTipo'),{type:'doughnut',data:{labels:tk,datasets:[{data:tv,backgroundColor:tc,borderColor:'#141c2e',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'right',labels:{color:'#8b95ab',font:{size:10},boxWidth:10,padding:8}},tooltip:{backgroundColor:'#1f2b45',titleColor:'#e8eaf0',bodyColor:'#8b95ab',borderColor:'#2a3550',borderWidth:1}}}});
+
+  var dk=Object.keys(D.dias_ranges);
+  var dv=Object.values(D.dias_ranges);
+  var dc=['rgba(34,197,94,0.7)','rgba(245,197,24,0.7)','rgba(249,115,22,0.7)','rgba(239,68,68,0.7)'];
+  charts['dias']=new Chart(document.getElementById('cDias'),{type:'bar',data:{labels:dk,datasets:[{data:dv,backgroundColor:dc,borderColor:dc.map(function(c){return c.replace('0.7','1');}),borderWidth:1,borderRadius:4}]},options:CHARTOPT});
+
+  var ck=Object.keys(D.clasif_count);
+  var cv=Object.values(D.clasif_count);
+  charts['clasif']=new Chart(document.getElementById('cClasif'),{type:'doughnut',data:{labels:ck,datasets:[{data:cv,backgroundColor:['rgba(59,130,246,0.8)','rgba(249,115,22,0.8)','rgba(239,68,68,0.8)'],borderColor:'#141c2e',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'right',labels:{color:'#8b95ab',font:{size:10},boxWidth:10,padding:6}},tooltip:{backgroundColor:'#1f2b45',titleColor:'#e8eaf0',bodyColor:'#8b95ab',borderColor:'#2a3550',borderWidth:1}}}});
+
+  var urg=D.by_region.filter(function(r){return r.urgentes>0;}).sort(function(a,b){return b.urgentes-a.urgentes;});
+  charts['urg']=new Chart(document.getElementById('cUrg'),{type:'bar',data:{labels:urg.map(function(r){return r.Region;}),datasets:[{data:urg.map(function(r){return r.urgentes;}),backgroundColor:'rgba(239,68,68,0.65)',borderColor:'#ef4444',borderWidth:1,borderRadius:3}]},options:CHARTOPT});
+}
+
+function buildTop10(){
+  // Top 10 por venta promedio semanal
+  var byVenta=[...D.top_priority].slice(0,10);
+  var rankColors=['var(--gold)','var(--gold)','var(--gold)','var(--orange)','var(--orange)','var(--text2)','var(--text2)','var(--text2)','var(--text2)','var(--text2)'];
+  var el=document.getElementById('top10Left');
+  if(!el) return;
+  if(!byVenta.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--text3);">Sin datos de venta</div>';return;}
+  el.innerHTML=byVenta.map(function(r,i){
+    var d=r.dias_abierta||0;
+    var dc=d>90?'var(--red)':d>60?'var(--orange)':d>30?'var(--gold)':'var(--green)';
+    var cine=(r.Conjunto||'').replace('CINÉPOLIS ','');
+    cine=cine.length>28?cine.substring(0,26)+'…':cine;
+    return '<div class="top10-row">'
+      +'<div class="top10-rank" style="color:'+rankColors[i]+';">'+(i+1)+'</div>'
+      +'<div class="top10-info">'
+      +'<div class="top10-serie">'+r.Serie+'</div>'
+      +'<div class="top10-cine" title="'+(r.Conjunto||'')+'">'+cine+'</div>'
+      +'<div style="font-size:10px;color:'+dc+';margin-top:2px;">'+d+' días abierta · '+r.Region+'</div>'
+      +'</div>'
+      +'<div class="top10-val">$'+(r.avg_semanal?Math.round(r.avg_semanal).toLocaleString():'—')+'/sem</div>'
+      +'</div>';
+  }).join('');
+
+  // Top 10 más antiguas
+  var byDias=[...D.incidencias].sort(function(a,b){return (b.dias_abierta||0)-(a.dias_abierta||0);}).slice(0,10);
+  var el2=document.getElementById('top10Right');
+  if(!el2) return;
+  if(!byDias.length){el2.innerHTML='<div style="text-align:center;padding:24px;color:var(--text3);">Sin datos</div>';return;}
+  el2.innerHTML=byDias.map(function(r,i){
+    var d=r.dias_abierta||0;
+    var dc=d>90?'var(--red)':d>60?'var(--orange)':'var(--gold)';
+    var cine=(r.Conjunto||'').replace('CINÉPOLIS ','');
+    cine=cine.length>28?cine.substring(0,26)+'…':cine;
+    var cls=r['Clasificacion Incidencia']==='BACK ORDER'?'<span class="badge bo" style="font-size:9px;">BO</span>':'<span class="badge bb" style="font-size:9px;">DX</span>';
+    return '<div class="top10-row">'
+      +'<div class="top10-rank" style="color:'+rankColors[i]+';">'+(i+1)+'</div>'
+      +'<div class="top10-info">'
+      +'<div class="top10-serie">'+r.Serie+' '+cls+'</div>'
+      +'<div class="top10-cine" title="'+(r.Conjunto||'')+'">'+cine+'</div>'
+      +'<div style="font-size:10px;color:var(--text2);margin-top:2px;">'+(r['Nombre de Incidencia']||'')+'</div>'
+      +'</div>'
+      +'<div style="font-family:var(--ff);font-size:18px;font-weight:700;color:'+dc+';">'+d+'d</div>'
+      +'</div>';
+  }).join('');
+}
+
+function renderDashboardIncidencias(container){
+  var regs=[...new Set(D.incidencias.map(function(r){return r.Region;}).filter(Boolean))].sort();
+  var tipos=[...new Set(D.incidencias.map(function(r){return r['Nombre de Incidencia'];}).filter(Boolean))].sort();
+  var regOpts=regs.map(function(r){return '<option value="'+r+'">'+r+'</option>';}).join('');
+  var tipOpts=tipos.map(function(t){return '<option value="'+t+'">'+t+'</option>';}).join('');
+  container.innerHTML=
+    '<div class="fbar">'
+    +'<span class="flabel">Región</span><select id="fReg" onchange="filterInc()"><option value="">Todas</option>'+regOpts+'</select>'
+    +'<span class="flabel">Prioridad</span><select id="fPrio" onchange="filterInc()"><option value="">Todas</option><option value="Urgente">🔴 Urgente</option><option value="Normal">Normal</option></select>'
+    +'<span class="flabel">Clasificación</span><select id="fClasif" onchange="filterInc()"><option value="">Todas</option><option value="EN DIAGNOSTICO">En Diagnóstico</option><option value="BACK ORDER">Back Order</option><option value="RETIRO">Retiro</option></select>'
+    +'<span class="flabel">Tipo</span><select id="fTipo" onchange="filterInc()"><option value="">Todos</option>'+tipOpts+'</select>'
+    +'<span class="flabel">Días</span><select id="fDias" onchange="filterInc()"><option value="">Todos</option><option value="0">0-30 días</option><option value="31">31-60 días</option><option value="61">61-90 días</option><option value="91">+90 días</option></select>'
+    +'<input type="text" id="fSearch" placeholder="Serie, Conjunto, Operador..." oninput="filterInc()">'
+    +'<button class="btn btn-ghost2" onclick="resetInc()">Limpiar</button>'
+    +'<span class="rcount" id="incCount"></span>'
+    +'</div>'
+    +'<div class="twrap"><div class="tscroll"><table><thead><tr>'
+    +'<th>ID Inc</th><th>Serie</th><th>Prioridad</th><th>Tipo</th><th>Clasificación</th><th>Conjunto</th><th>Región</th><th>Ruta</th><th>Operador</th><th>Días Abierta</th><th>Observaciones</th>'
+    +'</tr></thead><tbody id="tbInc"></tbody></table></div><div class="pag" id="pagInc"></div></div>';
+  filterInc();
+}
+
+function filterInc(){
+  var reg=document.getElementById('fReg')?document.getElementById('fReg').value:'';
+  var pri=document.getElementById('fPrio')?document.getElementById('fPrio').value:'';
+  var cls=document.getElementById('fClasif')?document.getElementById('fClasif').value:'';
+  var tip=document.getElementById('fTipo')?document.getElementById('fTipo').value:'';
+  var dia=document.getElementById('fDias')?document.getElementById('fDias').value:'';
+  var src=document.getElementById('fSearch')?document.getElementById('fSearch').value.toLowerCase():'';
+  incF=D.incidencias.filter(function(r){
+    if(reg&&r.Region!==reg) return false;
+    if(pri&&r.Prioridad!==pri) return false;
+    if(cls&&r['Clasificacion Incidencia']!==cls) return false;
+    if(tip&&r['Nombre de Incidencia']!==tip) return false;
+    if(dia){var d=r.dias_abierta||0;if(dia==='0'&&d>30)return false;if(dia==='31'&&!(d>30&&d<=60))return false;if(dia==='61'&&!(d>60&&d<=90))return false;if(dia==='91'&&d<=90)return false;}
+    if(src){var h=[r.Serie,r.Conjunto,r.Region,r.Ruta,r.Operador,r['Nombre de Incidencia'],String(r.IdIncidencia||'')].join(' ').toLowerCase();if(!h.includes(src))return false;}
+    return true;
+  });
+  incPg=1;renderInc();
+  var ic=document.getElementById('incCount');if(ic)ic.textContent=incF.length+' registros';
+}
+
+function renderInc(){
+  var s=(incPg-1)*PS, pg=incF.slice(s,s+PS);
+  var tb=document.getElementById('tbInc');if(!tb)return;
+  if(!pg.length){tb.innerHTML='<tr><td colspan="11" class="nodata">Sin registros</td></tr>';renderPag('pagInc',0,incPg,null);return;}
+  tb.innerHTML=pg.map(function(r){
+    var pb=r.Prioridad==='Urgente'?'<span class="badge br">🔴 Urgente</span>':'<span class="badge bw">Normal</span>';
+    var cb=r['Clasificacion Incidencia']==='BACK ORDER'?'<span class="badge bo">BACK ORDER</span>':r['Clasificacion Incidencia']==='RETIRO'?'<span class="badge br">RETIRO</span>':'<span class="badge bb">En Diagnóstico</span>';
+    var d=r.dias_abierta||0;
+    var dc=d>90?'var(--red)':d>60?'var(--orange)':d>30?'var(--gold)':'var(--green)';
+    var obs=(r.Observaciones||'').substring(0,45);
+    return '<tr><td style="color:var(--text2);font-size:11px;">'+r.IdIncidencia+'</td><td style="font-family:var(--ff);color:var(--gold);font-weight:600;">'+r.Serie+'</td><td>'+pb+'</td><td>'+r['Nombre de Incidencia']+'</td><td>'+cb+'</td><td>'+r.Conjunto+'</td><td>'+r.Region+'</td><td>'+r.Ruta+'</td><td style="color:var(--text2);font-size:11px;">'+r.Operador+'</td><td><span style="color:'+dc+';font-family:var(--ff);font-size:16px;font-weight:700;">'+d+'</span></td><td style="color:var(--text2);font-size:11px;" title="'+(r.Observaciones||'').replace(/"/g,"'")+'">'+obs+(obs.length>=45?'…':'')+'</td></tr>';
+  }).join('');
+  renderPag('pagInc',incF.length,incPg,function(p){incPg=p;renderInc();});
+}
+
+function resetInc(){
+  ['fReg','fPrio','fClasif','fTipo','fDias'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  var el=document.getElementById('fSearch');if(el)el.value='';
+  filterInc();
+}
+
+
+function renderDashboardPrioridad(container){
+  prioF=[...D.top_priority];
+  var regs=[...new Set(D.top_priority.map(function(r){return r.Region;}).filter(Boolean))].sort();
+  container.innerHTML=
+    '<div class="abn"><div style="font-size:20px;">⚡</div><div><div class="abt">Máquinas con incidencia abierta — ordenadas por venta semanal promedio</div><div class="abd">Las que más dinero generan deben atenderse primero. Solo se muestran las que tienen datos de venta.</div></div></div>'
+    +'<div class="fbar">'
+    +'<span class="flabel">Región</span><select id="fpReg" onchange="filterPrio()"><option value="">Todas</option>'+regs.map(function(r){return '<option value="'+r+'">'+r+'</option>';}).join('')+'</select>'
+    +'<span class="flabel">Prioridad</span><select id="fpPrio" onchange="filterPrio()"><option value="">Todas</option><option value="Urgente">Urgente</option><option value="Normal">Normal</option></select>'
+    +'<input type="text" id="fpSearch" placeholder="Serie, Conjunto..." oninput="filterPrio()">'
+    +'<button class="btn btn-ghost2" onclick="resetPrio()">Limpiar</button>'
+    +'<span class="rcount" id="prioCount"></span>'
+    +'</div>'
+    +'<div class="twrap"><div class="tscroll"><table><thead><tr>'
+    +'<th>#</th><th>ID Inc</th><th>Serie</th><th>Tipo Incidencia</th><th>Prioridad</th><th>Conjunto</th><th>Región</th><th>Días Abierta</th><th>Venta Prom/Sem</th><th>Venta Total</th>'
+    +'</tr></thead><tbody id="tbPrio"></tbody></table></div><div class="pag" id="pagPrio"></div></div>';
+  filterPrio();
+}
+
+function filterPrio(){
+  var reg=document.getElementById('fpReg')?document.getElementById('fpReg').value:'';
+  var pri=document.getElementById('fpPrio')?document.getElementById('fpPrio').value:'';
+  var src=document.getElementById('fpSearch')?document.getElementById('fpSearch').value.toLowerCase():'';
+  prioF=D.top_priority.filter(function(r){
+    if(reg&&r.Region!==reg) return false;
+    if(pri&&r.Prioridad!==pri) return false;
+    if(src){var h=[r.Serie,r.Conjunto,r.Region].join(' ').toLowerCase();if(!h.includes(src))return false;}
+    return true;
+  });
+  prioPg=1;renderPrio();
+  var pc=document.getElementById('prioCount');if(pc)pc.textContent=prioF.length+' registros';
+}
+
+function renderPrio(){
+  var s=(prioPg-1)*PS, pg=prioF.slice(s,s+PS);
+  var tb=document.getElementById('tbPrio');if(!tb)return;
+  if(!pg.length){tb.innerHTML='<tr><td colspan="10" class="nodata">Sin registros</td></tr>';return;}
+  tb.innerHTML=pg.map(function(r,i){
+    var rk=s+i+1;
+    var rc=rk===1?'var(--gold)':rk<=3?'var(--orange)':'var(--text2)';
+    var pb=r.Prioridad==='Urgente'?'<span class="badge br">Urgente</span>':'<span class="badge bw">Normal</span>';
+    var d=r.dias_abierta||0;
+    var dc=d>90?'var(--red)':d>60?'var(--orange)':d>30?'var(--gold)':'var(--green)';
+    var v=r.avg_semanal?'$'+Math.round(r.avg_semanal).toLocaleString():'-';
+    var t=r.TOTAL_VENTA?'$'+Math.round(r.TOTAL_VENTA).toLocaleString():'-';
+    return '<tr><td style="color:'+rc+';font-family:var(--ff);font-size:17px;font-weight:700;">'+rk+'</td><td style="color:var(--text2);font-size:11px;">'+r.IdIncidencia+'</td><td style="font-family:var(--ff);color:var(--gold);font-weight:600;">'+r.Serie+'</td><td>'+r['Nombre de Incidencia']+'</td><td>'+pb+'</td><td>'+r.Conjunto+'</td><td>'+r.Region+'</td><td style="color:'+dc+';font-family:var(--ff);font-size:16px;font-weight:700;">'+d+'</td><td style="color:var(--gold);font-family:var(--ff);font-size:17px;font-weight:700;">'+v+'</td><td style="color:var(--text2);">'+t+'</td></tr>';
+  }).join('');
+  renderPag('pagPrio',prioF.length,prioPg,function(p){prioPg=p;renderPrio();});
+}
+function resetPrio(){['fpReg','fpPrio'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});var el=document.getElementById('fpSearch');if(el)el.value='';filterPrio();}
+
+function renderDashboardVenta(container){
+  container.innerHTML=
+    '<div class="abn orange"><div style="font-size:20px;">⚠️</div><div><div class="abt">Máquinas con 2 o más semanas consecutivas en $0 de venta</div><div class="abd">Verifica si tienen incidencia abierta o si Cinépolis las reportó por separado.</div></div></div>'
+    +'<div class="twrap"><div class="tscroll"><table><thead><tr>'
+    +'<th>Conjunto</th><th>Región</th><th>Ruta</th><th>Serie</th><th>Máquina</th><th>Sem Cero Consec.</th><th>Prom Semanal</th><th>Venta Total</th><th>S10</th><th>S11</th><th>S12</th><th>S13</th>'
+    +'</tr></thead><tbody id="tbVenta"></tbody></table></div></div>';
+  renderVenta();
+}
+
+function renderVenta(){
+  var tb=document.getElementById('tbVenta');if(!tb)return;
+  if(!D.venta_alerta.length){tb.innerHTML='<tr><td colspan="12" class="nodata">✅ No hay máquinas con alerta de venta cero</td></tr>';return;}
+  tb.innerHTML=D.venta_alerta.map(function(r){
+    var sc=(D.semana_cols_last4||[]).map(function(s){var v=r[s];var c=v===0?'sz':v<100?'sl':'sok';return '<td><span class="sc '+c+'">$'+v+'</span></td>';}).join('');
+    return '<tr><td>'+r.CONJUNTO+'</td><td>'+r.REGION+'</td><td>'+r.RUTA+'</td><td style="font-family:var(--ff);color:var(--orange);font-weight:600;">'+r.NUM_SERIE+'</td><td>'+r.NOMBRE_MAQUINA+'</td><td style="color:var(--red);font-family:var(--ff);font-size:20px;font-weight:700;">'+r.max_consec_zeros+'</td><td>$'+Math.round(r.avg_semanal||0).toLocaleString()+'</td><td>$'+Math.round(r.TOTAL_VENTA||0).toLocaleString()+'</td>'+sc+'</tr>';
+  }).join('');
+}
+
+function renderDashboardCinepolis(container){
+  var k=D.kpi;
+  cineF=[...D.romel];
+  container.innerHTML=
+    '<div class="igrid">'
+    +'<div class="icard"><div class="ititle"><div class="dot-g"></div>Máquinas en Reporte Cinépolis</div><div style="font-size:36px;font-family:var(--ff);font-weight:700;color:var(--cyan);">'+(k.romel_total||0)+'</div><div style="font-size:11px;color:var(--text2);margin-top:6px;">Total reportadas por Cinépolis con falla</div></div>'
+    +'<div class="icard"><div class="ititle"><div class="dot-r"></div>Sin Incidencia en Nuestro Sistema</div><div style="font-size:36px;font-family:var(--ff);font-weight:700;color:var(--red);">'+(k.romel_no_en_sistema||0)+'</div><div style="font-size:11px;color:var(--text2);margin-top:6px;">⚠️ Cinépolis las reportó pero NO tenemos incidencia levantada</div></div>'
+    +'</div>'
+    +'<div class="fbar">'
+    +'<span class="flabel">En Sistema</span><select id="fcStatus" onchange="filterCineDash()"><option value="">Todos</option><option value="sin">⚠️ Sin incidencia nuestra</option><option value="con">✅ Con incidencia nuestra</option></select>'
+    +'<span class="flabel">Modo de Falla</span><select id="fcModo" onchange="filterCineDash()"><option value="">Todos</option><option value="Venta cero">Venta cero</option><option value="Parcialmente operando">Parcialmente operando</option></select>'
+    +'<span class="flabel">Estatus</span><select id="fcEstatus" onchange="filterCineDash()"><option value="">Todos</option><option value="En espera de refacción">En espera de refacción</option><option value="En revisión">En revisión</option></select>'
+    +'<input type="text" id="fcSearch" placeholder="Serie, Cine, ORSAID..." oninput="filterCineDash()">'
+    +'<button class="btn btn-ghost2" onclick="resetCineDash()">Limpiar</button>'
+    +'<span class="rcount" id="cineCount"></span>'
+    +'</div>'
+    +'<div class="twrap"><div class="tscroll"><table><thead><tr>'
+    +'<th>Fecha Reporte</th><th>Semana</th><th>ORSAID</th><th>Cine</th><th>Región CP</th><th>Región</th><th>Ruta</th>'
+    +'<th>Gte Zona</th><th>Género</th><th>Serie VDJ</th><th>Nombre VDJ</th><th>Modo Falla</th>'
+    +'<th>Solicitud</th><th>Responsable</th><th>Confirmación</th>'
+    +'<th>Estatus</th><th>Comentarios</th>'
+    +'<th>Prom Semanal</th><th>Acumulado</th><th>VS Reporte</th><th>Días SLA</th><th>En Sistema</th>'
+    +'</tr></thead><tbody id="tbCineD"></tbody></table></div></div>';
+  filterCineDash();
+}
+
+function filterCineDash(){
+  var st=document.getElementById('fcStatus')?document.getElementById('fcStatus').value:'';
+  var mo=document.getElementById('fcModo')?document.getElementById('fcModo').value:'';
+  var es=document.getElementById('fcEstatus')?document.getElementById('fcEstatus').value:'';
+  var sr=document.getElementById('fcSearch')?document.getElementById('fcSearch').value.toLowerCase():'';
+  cineF=D.romel.filter(function(r){
+    if(st==='sin'&&r.en_nuestro_sistema) return false;
+    if(st==='con'&&!r.en_nuestro_sistema) return false;
+    if(mo&&r['MODO DE FALLA']!==mo) return false;
+    if(es&&r['ESTATUS']!==es) return false;
+    if(sr){
+      var h=[
+        r['SERIE VDJ'],r['NOMBRE VDJ'],r['CINE'],r['ORSAID CINE'],
+        String(r['REGIÓN CINÉPOLIS']||''),String(r.REGION||''),r['MODO DE FALLA']||''
+      ].join(' ').toLowerCase();
+      if(!h.includes(sr))return false;
+    }
+    return true;
+  });
+  renderCineDash();
+  var cc=document.getElementById('cineCount');if(cc)cc.textContent=cineF.length+' registros';
+}
+
+function renderCineDash(){
+  var tb=document.getElementById('tbCineD');if(!tb)return;
+  if(!cineF.length){tb.innerHTML='<tr><td colspan="22" class="nodata">Sin registros</td></tr>';return;}
+  tb.innerHTML=cineF.map(function(r){
+    var ens=r.en_nuestro_sistema;
+    var sb=ens?'<span class="badge bg">✅ Sí</span>':'<span class="badge br">⚠️ NO</span>';
+    var mb=r['MODO DE FALLA']==='Venta cero'?'<span class="badge bo">Venta cero</span>':'<span class="badge bb">Parcial</span>';
+    var ds=r['Días vs SLA']||0;
+    var dsc=ds>20?'var(--red)':ds>10?'var(--orange)':'var(--green)';
+    var pm=r['PROMEDIO SEMANAL']?'$'+Math.round(r['PROMEDIO SEMANAL']).toLocaleString():'-';
+    var ac=r['ACUMULADO']?'$'+Math.round(r['ACUMULADO']).toLocaleString():'-';
+    var vsr=r['VS Reporte']||'-';
+    // Estatus badge
+    var estatus=r['ESTATUS']||'';
+    var estBadge=estatus?'<span class="badge '+(estatus==='En revisión'?'bb':'bo')+'">'+estatus+'</span>':'-';
+    // Truncar textos largos
+    var cine=(r['CINE']||'').substring(0,22)+((r['CINE']||'').length>22?'…':'');
+    var sol=(r['SOLICITUD']||'').substring(0,20)+((r['SOLICITUD']||'').length>20?'…':'');
+    var resp=(r['RESPONSABLE DE CERRAR ACCION']||'').substring(0,18)+((r['RESPONSABLE DE CERRAR ACCION']||'').length>18?'…':'');
+    var conf=(r['CONFIRMACIÓN DE CINE']||'').substring(0,16)+((r['CONFIRMACIÓN DE CINE']||'').length>16?'…':'');
+    var coment=(r['COMENTARIOS SUBGERENTES']||'').substring(0,22)+((r['COMENTARIOS SUBGERENTES']||'').length>22?'…':'');
+    return '<tr>'
+      +'<td style="color:var(--text2);font-size:11px;">'+(r['#FECHA DE REPORTE']||'')+'</td>'
+      +'<td style="color:var(--text2);font-size:11px;text-align:center;">'+(r['SEMANA']||'')+'</td>'
+      +'<td style="color:var(--text2);font-size:11px;">'+(r['ORSAID CINE']||'')+'</td>'
+      +'<td title="'+(r['CINE']||'')+'">'+cine+'</td>'
+      +'<td style="color:var(--text2);font-size:11px;">'+(r['REGIÓN CINÉPOLIS']||'')+'</td>'
+      +'<td style="color:var(--text2);font-size:11px;">'+(r['REGION']||'')+'</td>'
+      +'<td style="color:var(--text2);font-size:11px;">'+(r['RUTA']||'')+'</td>'
+      +'<td style="color:var(--text2);font-size:11px;">'+(r['GERENTE DE ZONA GALEX']||'')+'</td>'
+      +'<td style="color:var(--text2);font-size:11px;">'+(r['GÉNERO']||'')+'</td>'
+      +'<td style="font-family:var(--ff);color:'+(ens?'var(--gold)':'var(--red)')+';font-weight:600;">'+(r['SERIE VDJ']||'')+'</td>'
+      +'<td>'+(r['NOMBRE VDJ']||'')+'</td>'
+      +'<td>'+mb+'</td>'
+      +'<td style="color:var(--text2);font-size:11px;" title="'+(r['SOLICITUD']||'')+'">'+sol+'</td>'
+      +'<td style="color:var(--text2);font-size:11px;" title="'+(r['RESPONSABLE DE CERRAR ACCION']||'')+'">'+resp+'</td>'
+      +'<td style="color:var(--text2);font-size:11px;" title="'+(r['CONFIRMACIÓN DE CINE']||'')+'">'+conf+'</td>'
+      +'<td>'+estBadge+'</td>'
+      +'<td style="color:var(--text2);font-size:11px;" title="'+(r['COMENTARIOS SUBGERENTES']||'')+'">'+coment+'</td>'
+      +'<td style="color:var(--gold);font-family:var(--ff);font-weight:600;">'+pm+'</td>'
+      +'<td style="color:var(--text2);">'+ac+'</td>'
+      +'<td style="color:var(--cyan);font-size:11px;">'+vsr+'</td>'
+      +'<td style="color:'+dsc+';font-family:var(--ff);font-size:16px;font-weight:700;">'+ds+'</td>'
+      +'<td>'+sb+'</td>'
+      +'</tr>';
+  }).join('');
+}
+function resetCineDash(){['fcStatus','fcModo','fcEstatus'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});var el=document.getElementById('fcSearch');if(el)el.value='';filterCineDash();}
+
+// ═══════════════════════════════════════════════════════════════
+//  ACTUALIZADOR — lee Excel en el browser (GitHub Pages compatible)
+// ═══════════════════════════════════════════════════════════════
+function renderActualizador(container){
+  container.innerHTML=
+    '<div style="max-width:700px;margin:0 auto;">'
+    +'<div style="font-family:var(--ff);font-size:22px;font-weight:700;margin-bottom:6px;">⚡ Actualizar Datos del Dashboard</div>'
+    +'<div style="font-size:12px;color:var(--text2);margin-bottom:24px;">Selecciona el archivo <strong style="color:var(--text);">Bases_de_datos.xlsx</strong> para actualizar todos los datos. No se necesita servidor — funciona directo en el navegador.</div>'
+    +'<div class="upd-zone" id="updZone" ondragover="updDrag(event,true)" ondragleave="updDrag(event,false)" ondrop="updDrop(event)">'
+    +'<input type="file" id="updFile" accept=".xlsx,.xls" onchange="updLoad(event)">'
+    +'<div class="upd-icon">📂</div>'
+    +'<div class="upd-title">Arrastra aquí el Excel o haz clic para seleccionar</div>'
+    +'<div class="upd-sub">Bases_de_datos.xlsx · Hojas: BD INCIDENCIA, BD MAQUINAS CINEPOLIS, BD VENTA SEMANAL, BD ROMEL</div>'
+    +'</div>'
+    +'<div class="upd-progress" id="updProgress">'
+    +'<div class="upd-step" id="updStep">Leyendo archivo...</div>'
+    +'<div class="upd-bar-wrap"><div class="upd-bar" id="updBar"></div></div>'
+    +'</div>'
+    +'<div class="upd-result" id="updResult"></div>'
+    +'</div>';
+}
+
+function updDrag(e,on){e.preventDefault();document.getElementById('updZone').classList[on?'add':'remove']('drag');}
+function updDrop(e){e.preventDefault();document.getElementById('updZone').classList.remove('drag');var f=e.dataTransfer.files[0];if(f)processExcel(f);}
+function updLoad(e){var f=e.target.files[0];if(f)processExcel(f);}
+
+function updSetBar(pct,msg){
+  document.getElementById('updProgress').style.display='block';
+  document.getElementById('updBar').style.width=pct+'%';
+  document.getElementById('updStep').textContent=msg;
+}
+
+function processExcel(file){
+  var result=document.getElementById('updResult');
+  result.style.display='none';
+  updSetBar(5,'Leyendo archivo Excel...');
+
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      updSetBar(20,'Cargando hojas...');
+      var wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+
+      var SHEET_INC='BD INCIDENCIA';
+      var SHEET_MAQ='BD MAQUINAS CINEPOLIS';
+      var SHEET_VENTA='BD VENTA SEMANAL';
+      var SHEET_ROMEL='BD ROMEL';
+
+      // Verificar hojas
+      var missing=[];
+      [SHEET_INC,SHEET_MAQ,SHEET_VENTA,SHEET_ROMEL].forEach(function(s){if(!wb.Sheets[s])missing.push(s);});
+      if(missing.length){
+        showUpdError('Faltan hojas: '+missing.join(', ')+'\nVerifica que el archivo sea el correcto.');
+        return;
+      }
+
+      updSetBar(35,'Procesando incidencias...');
+      var inc=XLSX.utils.sheet_to_json(wb.Sheets[SHEET_INC],{defval:''});
+      var maq=XLSX.utils.sheet_to_json(wb.Sheets[SHEET_MAQ],{defval:''});
+      var venta=XLSX.utils.sheet_to_json(wb.Sheets[SHEET_VENTA],{defval:0});
+      var romel=XLSX.utils.sheet_to_json(wb.Sheets[SHEET_ROMEL],{defval:''});
+
+      updSetBar(55,'Calculando KPIs...');
+      var today=new Date(); today.setHours(0,0,0,0);
+
+      // Incidencias abiertas
+      var incOpen=inc.filter(function(r){return String(r['Status de la Incidencia']||'').trim()==='Abierta';});
+      incOpen=incOpen.map(function(r){
+        var fc=r['Fecha de Creacion'];
+        var d=0;
+        if(fc){var fd=fc instanceof Date?fc:new Date(fc);if(!isNaN(fd)){d=Math.max(0,Math.floor((today-fd)/(1000*60*60*24)));}}
+        return Object.assign({},r,{dias_abierta:d});
+      });
+
+      // Semana cols
+      var ventaCols=Object.keys(venta[0]||{});
+      var semanaCols=ventaCols.filter(function(c){return String(c).toUpperCase().indexOf('SEMANA')>=0;});
+
+      // Venta procesada
+      var ventaMap={};
+      venta.forEach(function(r){
+        var serie=String(r['NUM_SERIE']||'');
+        var vals=semanaCols.map(function(c){return parseFloat(r[c])||0;});
+        var avg=vals.length?vals.reduce(function(a,b){return a+b;},0)/vals.length:0;
+        var total=vals.reduce(function(a,b){return a+b;},0);
+        var maxConsec=0,cur=0;
+        vals.forEach(function(v){if(v===0){cur++;maxConsec=Math.max(maxConsec,cur);}else{cur=0;}});
+        ventaMap[serie]={avg_semanal:Math.round(avg),TOTAL_VENTA:Math.round(total),max_consec_zeros:maxConsec,alerta:maxConsec>=2,semanas:r};
+      });
+
+      // Cruce incidencias + venta
+      var incMerged=incOpen.map(function(r){
+        var v=ventaMap[String(r['Serie']||'')]||{};
+        return Object.assign({},r,{
+          avg_semanal:v.avg_semanal||'',
+          TOTAL_VENTA:v.TOTAL_VENTA||'',
+          alerta_venta:v.alerta||false,
+        });
+      });
+
+      // KPIs
+      var kpi={
+        total_incidencias_abiertas:incOpen.length,
+        urgentes:incOpen.filter(function(r){return r['Prioridad']==='Urgente';}).length,
+        back_order:incOpen.filter(function(r){return r['Clasificacion Incidencia']==='BACK ORDER';}).length,
+        en_diagnostico:incOpen.filter(function(r){return r['Clasificacion Incidencia']==='EN DIAGNOSTICO';}).length,
+        mas_30_dias:incOpen.filter(function(r){return r.dias_abierta>30;}).length,
+        mas_90_dias:incOpen.filter(function(r){return r.dias_abierta>90;}).length,
+        alertas_venta_cero:Object.values(ventaMap).filter(function(v){return v.alerta;}).length,
+        romel_total:romel.length,
+        romel_no_en_sistema:0,
+        maquinas_en_ruta:maq.filter(function(r){return String(r['STATUS']||'').trim()==='EN RUTA';}).length,
+      };
+
+      updSetBar(70,'Procesando Romel y ventas...');
+
+      // Romel cruce
+      var incSeriesSet={};
+      inc.forEach(function(r){incSeriesSet[String(r['Serie']||'')]=true;});
+      var romelProcessed=romel.map(function(r){
+        return Object.assign({},r,{en_nuestro_sistema:!!incSeriesSet[String(r['SERIE VDJ']||'')]});
+      });
+      kpi.romel_no_en_sistema=romelProcessed.filter(function(r){return !r.en_nuestro_sistema;}).length;
+
+      // Tabla incidencias (500 max)
+      var colsInc=['IdIncidencia','IdMaquina','Serie','Prioridad','Clasificacion Incidencia','Nombre de Incidencia','Conjunto','Region','Ruta','Operador','Fecha de Creacion','dias_abierta','Observaciones','avg_semanal','TOTAL_VENTA','alerta_venta'];
+      var incTable=incMerged.slice(0,500).map(function(r){
+        var out={};
+        colsInc.forEach(function(c){
+          var v=r[c];
+          if(v instanceof Date)v=v.toISOString().slice(0,19).replace('T',' ');
+          out[c]=v===null||v===undefined?'':v;
+        });
+        return out;
+      });
+
+      // Top priority
+      var topPriority=incMerged
+        .filter(function(r){return r.avg_semanal&&r.avg_semanal>0;})
+        .sort(function(a,b){return (b.avg_semanal||0)-(a.avg_semanal||0);})
+        .slice(0,20)
+        .map(function(r){return {IdIncidencia:r.IdIncidencia,Serie:r.Serie,'Nombre de Incidencia':r['Nombre de Incidencia'],Prioridad:r.Prioridad,Conjunto:r.Conjunto,Region:r.Region,dias_abierta:r.dias_abierta,avg_semanal:r.avg_semanal,TOTAL_VENTA:r.TOTAL_VENTA};});
+
+      // Venta alerta
+      var last4=semanaCols.slice(-4);
+      var ventaAlerta=venta.filter(function(r){
+        var serie=String(r['NUM_SERIE']||'');
+        return ventaMap[serie]&&ventaMap[serie].alerta;
+      }).map(function(r){
+        var out={CONJUNTO:r['CONJUNTO']||'',REGION:r['REGION']||'',RUTA:r['RUTA']||'',NUM_SERIE:r['NUM_SERIE']||'',NOMBRE_MAQUINA:r['NOMBRE_MAQUINA']||''};
+        var v=ventaMap[String(r['NUM_SERIE']||'')]||{};
+        out.avg_semanal=v.avg_semanal||0;
+        out.TOTAL_VENTA=v.TOTAL_VENTA||0;
+        out.max_consec_zeros=v.max_consec_zeros||0;
+        last4.forEach(function(c){out[c]=parseFloat(r[c])||0;});
+        return out;
+      });
+
+      // Charts data
+      var byRegion={};
+      incOpen.forEach(function(r){
+        var reg=r['Region']||'Sin región';
+        if(!byRegion[reg])byRegion[reg]={Region:reg,total:0,urgentes:0,back_order:0};
+        byRegion[reg].total++;
+        if(r['Prioridad']==='Urgente')byRegion[reg].urgentes++;
+        if(r['Clasificacion Incidencia']==='BACK ORDER')byRegion[reg].back_order++;
+      });
+      var byRegionArr=Object.values(byRegion);
+
+      var nombreCount={};
+      incOpen.forEach(function(r){var n=r['Nombre de Incidencia']||'';if(n){nombreCount[n]=(nombreCount[n]||0)+1;}});
+      // Sort desc, top 8
+      var nombreCountSorted={};
+      Object.entries(nombreCount).sort(function(a,b){return b[1]-a[1];}).slice(0,8).forEach(function(e){nombreCountSorted[e[0]]=e[1];});
+
+      var clasifCount={};
+      incOpen.forEach(function(r){var c=r['Clasificacion Incidencia']||'';if(c){clasifCount[c]=(clasifCount[c]||0)+1;}});
+
+      var diasRanges={'0-30 días':0,'31-60 días':0,'61-90 días':0,'+90 días':0};
+      incOpen.forEach(function(r){
+        var d=r.dias_abierta||0;
+        if(d<=30)diasRanges['0-30 días']++;
+        else if(d<=60)diasRanges['31-60 días']++;
+        else if(d<=90)diasRanges['61-90 días']++;
+        else diasRanges['+90 días']++;
+      });
+
+      var today2=new Date();
+      var fecha=('0'+today2.getDate()).slice(-2)+'/'+today2.toLocaleString('es-MX',{month:'short'})+'/'+today2.getFullYear();
+
+      updSetBar(90,'Aplicando datos...');
+
+      // Construir objeto D nuevo
+      var newD={
+        kpi:kpi,
+        incidencias:incTable,
+        venta_alerta:ventaAlerta,
+        romel:romelProcessed,
+        by_region:byRegionArr,
+        nombre_count:nombreCountSorted,
+        clasif_count:clasifCount,
+        dias_ranges:diasRanges,
+        top_priority:topPriority,
+        semana_cols_last4:last4,
+        fecha_actualizacion:fecha,
+      };
+
+      // Aplicar en memoria (actualiza el dashboard sin recargar)
+      Object.assign(D, newD);
+      // Guardar en localStorage como respaldo
+      try{localStorage.setItem('cp_dashboard_data',JSON.stringify(newD));}catch(e){}
+
+      // Actualizar badge de fecha en header
+      var fb=document.getElementById('fechaBadge');if(fb){fb.textContent=fecha;fb.style.display='block';}
+
+      updSetBar(100,'¡Completado!');
+
+      result.className='upd-result ok';
+      result.style.display='block';
+      result.innerHTML='<strong>✅ Dashboard actualizado correctamente</strong><br><span style="font-size:11px;color:var(--text2);">'+fecha+' · Los datos están activos en esta sesión. Para publicar en GitHub Pages, ejecuta también el script Python <code>actualizar.py</code> para actualizar el HTML permanentemente.</span>'
+        +'<div class="upd-kpi-grid">'
+        +'<div class="upd-kpi"><div class="upd-kpi-val">'+kpi.total_incidencias_abiertas.toLocaleString()+'</div><div class="upd-kpi-lbl">Incidencias</div></div>'
+        +'<div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--red);">'+kpi.urgentes+'</div><div class="upd-kpi-lbl">Urgentes</div></div>'
+        +'<div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--orange);">'+kpi.back_order+'</div><div class="upd-kpi-lbl">Back Order</div></div>'
+        +'<div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--purple);">'+kpi.mas_90_dias+'</div><div class="upd-kpi-lbl">+90 días</div></div>'
+        +'<div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--orange);">'+kpi.alertas_venta_cero+'</div><div class="upd-kpi-lbl">Alerta Venta</div></div>'
+        +'<div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--gold);">'+kpi.maquinas_en_ruta.toLocaleString()+'</div><div class="upd-kpi-lbl">En Ruta</div></div>'
+        +'</div>';
+
+    }catch(err){
+      showUpdError('Error procesando el Excel:\n'+err.message);
+    }
+  };
+  reader.onerror=function(){showUpdError('No se pudo leer el archivo.');};
+  reader.readAsArrayBuffer(file);
+}
+
+function showUpdError(msg){
+  document.getElementById('updProgress').style.display='none';
+  var r=document.getElementById('updResult');
+  r.className='upd-result err';
+  r.style.display='block';
+  r.innerHTML='<strong>❌ Error</strong><br><span style="font-size:12px;">'+msg.replace(/\n/g,'<br>')+'</span>';
+}
+
+// Restaurar datos de localStorage si existen (sesión anterior)
+(function(){
+  try{
+    var saved=localStorage.getItem('cp_dashboard_data');
+    if(saved){
+      var parsed=JSON.parse(saved);
+      if(parsed&&parsed.kpi&&parsed.kpi.total_incidencias_abiertas>0){
+        Object.assign(D,parsed);
+      }
+    }
+  }catch(e){}
+})();
+
+
+function renderPag(id,total,cur,cb){
+  var c=document.getElementById(id);if(!c)return;
+  var tp=Math.ceil(total/PS);
+  if(tp<=1){c.innerHTML='<span class="pinfo">'+total+' registros</span>';return;}
+  var h='<span class="pinfo">'+total+' registros · Página '+cur+' de '+tp+'</span>';
+  if(cur>1)h+='<button class="pbtn" onclick="('+cb+')('+( cur-1)+')">‹</button>';
+  var st=Math.max(1,cur-2),en=Math.min(tp,cur+2);
+  for(var p=st;p<=en;p++)h+='<button class="pbtn '+(p===cur?'active':'')+'" onclick="('+cb+')('+p+')">'+p+'</button>';
+  if(cur<tp)h+='<button class="pbtn" onclick="('+cb+')('+(cur+1)+')">›</button>';
+  c.innerHTML=h;
+}
+
 function updateBadge(){
   var nb=document.getElementById('nbTotal');if(!nb)return;
-  var rol=currentUser.rol;
   var count=getIncs().filter(function(r){
     if(r.estado==='Resuelta')return false;
-    if(rol==='cinepolis')return r.usuario===currentUser.username;
+    if(currentUser.rol==='cinepolis')return r.usuario===currentUser.username;
     return true;
   }).length;
   nb.textContent=count;
