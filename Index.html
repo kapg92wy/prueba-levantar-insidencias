@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Centro de Servicio — Cinépolis</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060a12;--bg2:#0a0f1c;--bg3:#0f1525;
+  --panel:#111827;--panel2:#1a2338;--panel3:#1f2a40;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.12);
+  --gold:#f5c518;--gold2:#e8a800;
+  --red:#ef4444;--orange:#f97316;--green:#22c55e;
+  --blue:#3b82f6;--cyan:#06b6d4;--purple:#8b5cf6;
+  --text:#e8eaf0;--text2:#8b95ab;--text3:#4b5671;
+  --ff:'Rajdhani',sans-serif;--fb:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:13px;min-height:100vh;}
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 0%,rgba(245,197,24,0.08) 0%,transparent 60%),var(--bg);}
+.login-box{background:var(--panel);border:1px solid var(--border2);border-radius:16px;padding:40px 48px;width:100%;max-width:420px;box-shadow:0 32px 80px rgba(0,0,0,0.5);}
+.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;}
+.login-logo-icon{width:44px;height:44px;background:var(--gold);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:var(--ff);font-weight:700;font-size:20px;color:#060a12;}
+.login-title{font-family:var(--ff);font-size:22px;font-weight:700;letter-spacing:1.5px;}
+.login-sub{font-size:11px;color:var(--text2);letter-spacing:.5px;}
+.login-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px;display:block;}
+.login-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:14px;font-family:var(--fb);padding:11px 14px;outline:none;transition:border-color .2s;margin-bottom:16px;}
+.login-input:focus{border-color:var(--gold);}
+.login-btn{width:100%;background:var(--gold);color:#060a12;border:none;border-radius:8px;padding:13px;font-size:14px;font-family:var(--ff);font-weight:700;letter-spacing:1px;cursor:pointer;transition:background .2s;margin-top:4px;}
+.login-btn:hover{background:var(--gold2);}
+.login-err{color:var(--red);font-size:12px;margin-top:8px;text-align:center;min-height:18px;}
+.login-hint{margin-top:20px;padding-top:16px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);line-height:1.9;}
+.login-hint span{color:var(--text2);}
+#app{display:none;}
+.header{background:linear-gradient(135deg,#080d1c,#0a1428,#060a12);border-bottom:2px solid var(--gold);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;box-shadow:0 4px 32px rgba(245,197,24,0.08);}
+.hlogo{width:34px;height:34px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:var(--ff);font-weight:700;font-size:16px;color:#060a12;margin-right:12px;}
+.htitle{font-family:var(--ff);font-size:19px;font-weight:700;letter-spacing:2px;}
+.hsub{font-size:10px;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;}
+.huser{display:flex;align-items:center;gap:10px;}
+.hbadge{font-size:10px;padding:4px 10px;border-radius:20px;font-weight:600;letter-spacing:.5px;}
+.hbadge.cine{background:rgba(6,182,212,.15);color:var(--cyan);border:1px solid rgba(6,182,212,.3);}
+.hbadge.mant{background:rgba(245,197,24,.15);color:var(--gold);border:1px solid rgba(245,197,24,.3);}
+.hbadge.admin{background:rgba(139,92,246,.15);color:var(--purple);border:1px solid rgba(139,92,246,.3);}
+.logout-btn{background:transparent;border:1px solid var(--border2);color:var(--text2);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-family:var(--fb);transition:all .2s;}
+.logout-btn:hover{border-color:var(--red);color:var(--red);}
+.nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;display:flex;overflow-x:auto;}
+.ntab{padding:13px 18px;font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s;letter-spacing:.5px;text-transform:uppercase;user-select:none;}
+.ntab:hover{color:var(--text);}
+.ntab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.nbadge{display:inline-block;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;margin-left:5px;vertical-align:middle;}
+.main{padding:24px;max-width:1500px;margin:0 auto;}
+.tab{display:none;}.tab.active{display:block;}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px;}
+.kcard{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px;position:relative;overflow:hidden;}
+.kcard::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.kcard.gold::before{background:var(--gold);}.kcard.red::before{background:var(--red);}.kcard.orange::before{background:var(--orange);}.kcard.green::before{background:var(--green);}.kcard.cyan::before{background:var(--cyan);}.kcard.purple::before{background:var(--purple);}
+.klabel{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;}
+.kval{font-family:var(--ff);font-size:32px;font-weight:700;line-height:1;}
+.kcard.gold .kval{color:var(--gold);}.kcard.red .kval{color:var(--red);}.kcard.orange .kval{color:var(--orange);}.kcard.green .kval{color:var(--green);}.kcard.cyan .kval{color:var(--cyan);}.kcard.purple .kval{color:var(--purple);}
+.cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+.ccard{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;}
+.ctitle{font-family:var(--ff);font-size:14px;font-weight:600;margin-bottom:4px;}
+.csub{font-size:10px;color:var(--text2);margin-bottom:12px;}
+.cwrap{position:relative;height:180px;}
+.form-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:28px;}
+.form-title{font-family:var(--ff);font-size:18px;font-weight:700;margin-bottom:4px;}
+.form-sub{font-size:11px;color:var(--text2);margin-bottom:24px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group.full{grid-column:1/-1;}
+.form-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;}
+.form-input,.form-select,.form-textarea{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--fb);padding:10px 13px;outline:none;transition:border-color .2s;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--gold);}
+.form-textarea{resize:vertical;min-height:80px;}
+.form-select option{background:var(--bg3);}
+.photo-zone{border:2px dashed var(--border2);border-radius:8px;padding:24px;text-align:center;cursor:pointer;transition:border-color .2s;position:relative;}
+.photo-zone:hover{border-color:var(--gold);}
+.photo-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.photo-preview{max-height:160px;border-radius:6px;margin-top:10px;object-fit:cover;}
+.submit-btn{margin-top:20px;background:var(--gold);color:#060a12;border:none;border-radius:8px;padding:13px 32px;font-size:14px;font-family:var(--ff);font-weight:700;letter-spacing:1px;cursor:pointer;transition:background .2s;}
+.submit-btn:hover{background:var(--gold2);}
+.success-msg{display:none;margin-top:16px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:12px 16px;color:var(--green);font-size:13px;}
+.filters{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+.flabel{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
+select,input[type=text]{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;font-family:var(--fb);padding:6px 10px;outline:none;transition:border-color .2s;}
+select:focus,input[type=text]:focus{border-color:var(--gold);}
+.rcount{font-size:11px;color:var(--text3);margin-left:auto;}
+.twrap{background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.tscroll{overflow-x:auto;max-height:520px;overflow-y:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead{position:sticky;top:0;z-index:5;}
+th{background:var(--panel2);color:var(--text2);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;padding:10px 12px;text-align:left;border-bottom:1px solid var(--border2);white-space:nowrap;}
+td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+tr:hover td{background:rgba(255,255,255,.02);}
+tr:last-child td{border-bottom:none;}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap;}
+.br{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);}
+.bo{background:rgba(249,115,22,.15);color:var(--orange);border:1px solid rgba(249,115,22,.3);}
+.bg{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3);}
+.bb{background:rgba(59,130,246,.15);color:var(--blue);border:1px solid rgba(59,130,246,.3);}
+.bc{background:rgba(6,182,212,.15);color:var(--cyan);border:1px solid rgba(6,182,212,.3);}
+.bp{background:rgba(139,92,246,.15);color:var(--purple);border:1px solid rgba(139,92,246,.3);}
+.bw{background:rgba(139,149,171,.1);color:var(--text2);border:1px solid var(--border);}
+.nodata{text-align:center;padding:48px;color:var(--text3);font-size:13px;}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--panel);border:1px solid var(--border2);border-radius:14px;padding:28px;max-width:620px;width:100%;margin:16px;max-height:90vh;overflow-y:auto;}
+.modal-title{font-family:var(--ff);font-size:17px;font-weight:700;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;}
+.modal-close{background:transparent;border:none;color:var(--text2);font-size:20px;cursor:pointer;line-height:1;}
+.modal-close:hover{color:var(--text);}
+.detail-row{display:flex;gap:8px;margin-bottom:10px;align-items:flex-start;}
+.detail-key{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;min-width:130px;margin-top:2px;flex-shrink:0;}
+.detail-val{font-size:13px;color:var(--text);}
+.modal-photo{width:100%;border-radius:8px;margin-top:8px;max-height:260px;object-fit:cover;}
+.status-select{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:13px;font-family:var(--fb);padding:8px 12px;outline:none;width:100%;}
+.save-status-btn{margin-top:10px;background:var(--gold);color:#060a12;border:none;border-radius:6px;padding:9px 20px;font-size:13px;font-family:var(--ff);font-weight:700;cursor:pointer;}
+.save-status-btn:hover{background:var(--gold2);}
+.nota-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:13px;font-family:var(--fb);padding:8px 12px;outline:none;margin-top:6px;resize:vertical;min-height:60px;}
+.btn-primary{padding:9px 18px;background:var(--gold);color:#060a12;border:none;border-radius:7px;font-size:13px;font-family:var(--ff);font-weight:700;cursor:pointer;}
+.btn-primary:hover{background:var(--gold2);}
+.btn-ghost{padding:9px 18px;background:transparent;color:var(--text2);border:1px solid var(--border2);border-radius:7px;font-size:13px;font-family:var(--fb);cursor:pointer;}
+.btn-ghost:hover{border-color:var(--text2);color:var(--text);}
+.btn-sm{padding:4px 10px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:11px;cursor:pointer;font-family:var(--fb);transition:all .2s;}
+.btn-sm:hover{border-color:var(--gold);color:var(--gold);}
+.btn-sm.danger:hover{border-color:var(--red);color:var(--red);}
+@media(max-width:900px){.cgrid{grid-template-columns:1fr;}.form-grid{grid-template-columns:1fr;}.form-group.full{grid-column:1;}}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">CP</div>
+      <div><div class="login-title">CENTRO DE SERVICIO</div><div class="login-sub">Cinépolis · Sistema de Incidencias</div></div>
+    </div>
+    <label class="login-label">Usuario</label>
+    <input class="login-input" id="loginUser" type="text" placeholder="usuario" autocomplete="off">
+    <label class="login-label">Contraseña</label>
+    <input class="login-input" id="loginPass" type="password" placeholder="••••••••">
+    <button class="login-btn" onclick="doLogin()">INGRESAR</button>
+    <div class="login-err" id="loginErr"></div>
+    <div class="login-hint">
+      <span>cine1 / cine123</span> — Cinépolis<br>
+      <span>manto1 / manto123</span> — Mantenimiento<br>
+      <span>admin / admin123</span> — Administrador
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <header class="header">
+    <div style="display:flex;align-items:center;">
+      <div class="hlogo">CP</div>
+      <div><div class="htitle">CENTRO DE SERVICIO</div><div class="hsub">Cinépolis · Gestión de Incidencias</div></div>
+    </div>
+    <div class="huser">
+      <span class="hbadge" id="roleBadge"></span>
+      <span style="font-size:12px;color:var(--text2);" id="userLabel"></span>
+      <button class="logout-btn" onclick="doLogout()">Salir</button>
+    </div>
+  </header>
+  <nav class="nav" id="mainNav"></nav>
+  <div class="main" id="mainContent"></div>
+</div>
+
+<div class="modal-bg" id="modalBg" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title"><span>Detalle de Incidencia</span><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalUserBg" onclick="closeUserModal(event)">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:460px;">
+    <div class="modal-title"><span id="userModalTitle">Usuario</span><button class="modal-close" onclick="closeUserModal()">✕</button></div>
+    <div id="userModalContent"></div>
+  </div>
+</div>
+
+<script>
+var currentUser=null,editingIncId=null,editingUserId=null,charts={},photoBase64='';
+
+function getDefaultUsers(){return[
+  {id:'u1',username:'admin',pass:'admin123',rol:'admin',nombre:'Administrador General'},
+  {id:'u2',username:'manto1',pass:'manto123',rol:'mantenimiento',nombre:'Técnico Mantenimiento'},
+  {id:'u3',username:'manto2',pass:'manto456',rol:'mantenimiento',nombre:'Supervisor Mtto'},
+  {id:'u4',username:'cine1',pass:'cine123',rol:'cinepolis',nombre:'Cinépolis Plaza Aragón'},
+  {id:'u5',username:'cine2',pass:'cine456',rol:'cinepolis',nombre:'Cinépolis Ecatepec'},
+];}
+
+function getDefaultIncs(){return[
+  {id:'INC-001',cine:'CINÉPOLIS PLAZA ARAGÓN',serie:'TWD2776',tipo:'OPERANDO PARCIALMENTE',prioridad:'Urgente',descripcion:'Botón de inicio roto, máquina opera intermitente.',foto:'',estado:'Abierta',usuario:'cine1',nombreUsuario:'Cinépolis Plaza Aragón',fecha:'2026-04-10T09:15:00',nota:''},
+  {id:'INC-002',cine:'CINÉPOLIS ECATEPEC',serie:'MON-057008S',tipo:'VENTA CERO',prioridad:'Urgente',descripcion:'Máquina encendida sin registro de ventas. Lleva 3 días sin venta.',foto:'',estado:'En proceso',usuario:'cine2',nombreUsuario:'Cinépolis Ecatepec',fecha:'2026-04-11T14:30:00',nota:'Falla en sensor del monedero. Refacción solicitada.'},
+  {id:'INC-003',cine:'CINÉPOLIS FORUM BUENAVISTA',serie:'MX875520230069',tipo:'IMAGEN / ESTÉTICA',prioridad:'Normal',descripcion:'Forro del sillón completamente desgastado.',foto:'',estado:'Resuelta',usuario:'cine1',nombreUsuario:'Cinépolis Plaza Aragón',fecha:'2026-04-08T11:00:00',nota:'Forro reemplazado el 12/04.'},
+  {id:'INC-004',cine:'CINÉPOLIS TECAMAC',serie:'03-10139',tipo:'MONEDERO / COBRO',prioridad:'Normal',descripcion:'Monedero no acepta billetes de $50.',foto:'',estado:'Abierta',usuario:'cine1',nombreUsuario:'Cinépolis Plaza Aragón',fecha:'2026-04-12T10:00:00',nota:''},
+  {id:'INC-005',cine:'CINÉPOLIS ECATEPEC',serie:'WLA000067212',tipo:'FUERA DE SERVICIO',prioridad:'Urgente',descripcion:'Máquina completamente apagada, no enciende.',foto:'',estado:'En proceso',usuario:'cine2',nombreUsuario:'Cinépolis Ecatepec',fecha:'2026-04-12T16:20:00',nota:'Revisando fuente de poder.'},
+];}
+
+function initStorage(){
+  if(!localStorage.getItem('cp_users')) localStorage.setItem('cp_users',JSON.stringify(getDefaultUsers()));
+  if(!localStorage.getItem('cp_inc')) localStorage.setItem('cp_inc',JSON.stringify(getDefaultIncs()));
+}
+function getUsers(){try{return JSON.parse(localStorage.getItem('cp_users'))||getDefaultUsers();}catch(e){return getDefaultUsers();}}
+function getIncs(){try{return JSON.parse(localStorage.getItem('cp_inc'))||getDefaultIncs();}catch(e){return getDefaultIncs();}}
+function saveUsers(u){localStorage.setItem('cp_users',JSON.stringify(u));}
+function saveIncs(i){localStorage.setItem('cp_inc',JSON.stringify(i));}
+
+initStorage();
+
+// ── LOGIN ──
+function doLogin(){
+  var u=document.getElementById('loginUser').value.trim().toLowerCase();
+  var p=document.getElementById('loginPass').value;
+  var err=document.getElementById('loginErr');
+  var found=getUsers().find(function(x){return x.username===u&&x.pass===p;});
+  if(!found){err.textContent='Usuario o contraseña incorrectos';return;}
+  err.textContent='';
+  currentUser=Object.assign({},found);
+  sessionStorage.setItem('cp_session',JSON.stringify(currentUser));
+  initApp();
+}
+function checkSession(){
+  try{var s=sessionStorage.getItem('cp_session');if(s){currentUser=JSON.parse(s);initApp();}}catch(e){}
+}
+function doLogout(){
+  currentUser=null;
+  sessionStorage.removeItem('cp_session');
+  Object.values(charts).forEach(function(c){try{c.destroy();}catch(e){}});
+  charts={};
+  document.getElementById('app').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('loginUser').value='';
+  document.getElementById('loginPass').value='';
+}
+document.getElementById('loginPass').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+document.getElementById('loginUser').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+
+// ── INIT APP ──
+function initApp(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='block';
+  var rolMap={cinepolis:'cine',mantenimiento:'mant',admin:'admin'};
+  var rolLabel={cinepolis:'CINÉPOLIS',mantenimiento:'MANTENIMIENTO',admin:'ADMINISTRADOR'};
+  var badge=document.getElementById('roleBadge');
+  badge.textContent=rolLabel[currentUser.rol]||currentUser.rol.toUpperCase();
+  badge.className='hbadge '+(rolMap[currentUser.rol]||'bw');
+  document.getElementById('userLabel').textContent=currentUser.nombre;
+  buildNav();
+  renderTab('inicio');
+}
+
+function buildNav(){
+  var rol=currentUser.rol;
+  var tabs=[
+    {id:'inicio',label:'🏠 Inicio',roles:['cinepolis','mantenimiento','admin']},
+    {id:'nueva',label:'➕ Nueva Incidencia',roles:['cinepolis','admin']},
+    {id:'lista',label:'📋 Incidencias',badge:true,roles:['cinepolis','mantenimiento','admin']},
+    {id:'usuarios',label:'👥 Usuarios',roles:['admin']},
+  ];
+  var nav=document.getElementById('mainNav');
+  nav.innerHTML=tabs.filter(function(t){return t.roles.indexOf(rol)>=0;}).map(function(t){
+    return '<div class="ntab" data-tab="'+t.id+'">'+t.label+(t.badge?'<span class="nbadge" id="nbTotal">0</span>':'')+'</div>';
+  }).join('');
+  nav.querySelectorAll('.ntab').forEach(function(t){
+    t.addEventListener('click',function(){
+      nav.querySelectorAll('.ntab').forEach(function(x){x.classList.remove('active');});
+      this.classList.add('active');
+      renderTab(this.dataset.tab);
+    });
+  });
+  nav.querySelector('.ntab').classList.add('active');
+  updateBadge();
+}
+
+function renderTab(tab){
+  var mc=document.getElementById('mainContent');
+  Object.values(charts).forEach(function(c){try{c.destroy();}catch(e){}});
+  charts={};
+  mc.innerHTML='<div id="tab-'+tab+'" class="tab active"></div>';
+  var div=document.getElementById('tab-'+tab);
+  if(tab==='inicio')renderInicio(div);
+  else if(tab==='nueva')renderNueva(div);
+  else if(tab==='lista')renderLista(div);
+  else if(tab==='usuarios')renderUsuarios(div);
+}
+
+// ── INICIO ──
+function renderInicio(container){
+  var rol=currentUser.rol;
+  var incs=getIncs();
+  if(rol==='cinepolis')incs=incs.filter(function(i){return i.usuario===currentUser.username;});
+  var total=incs.length;
+  var abiertas=incs.filter(function(i){return i.estado==='Abierta';}).length;
+  var proceso=incs.filter(function(i){return i.estado==='En proceso';}).length;
+  var urgentes=incs.filter(function(i){return i.prioridad==='Urgente'&&i.estado!=='Resuelta';}).length;
+  var resueltas=incs.filter(function(i){return i.estado==='Resuelta';}).length;
+
+  var chartsHtml='';
+  if(rol!=='cinepolis'){
+    chartsHtml='<div class="cgrid"><div class="ccard"><div class="ctitle">Por Estado</div><div class="csub">Distribución actual</div><div class="cwrap"><canvas id="cEstado"></canvas></div></div><div class="ccard"><div class="ctitle">Por Tipo de Falla</div><div class="csub">Categorías reportadas</div><div class="cwrap"><canvas id="cTipo"></canvas></div></div><div class="ccard"><div class="ctitle">Prioridad</div><div class="csub">Normal vs Urgente</div><div class="cwrap"><canvas id="cPrio"></canvas></div></div></div>';
+  }
+
+  container.innerHTML='<div class="kgrid">'
+    +'<div class="kcard gold"><div class="klabel">Total</div><div class="kval">'+total+'</div></div>'
+    +'<div class="kcard red"><div class="klabel">Abiertas</div><div class="kval">'+abiertas+'</div></div>'
+    +'<div class="kcard orange"><div class="klabel">En Proceso</div><div class="kval">'+proceso+'</div></div>'
+    +'<div class="kcard red"><div class="klabel">Urgentes</div><div class="kval">'+urgentes+'</div></div>'
+    +'<div class="kcard green"><div class="klabel">Resueltas</div><div class="kval">'+resueltas+'</div></div>'
+    +'</div>'+chartsHtml
+    +'<div style="font-family:var(--ff);font-size:15px;font-weight:600;margin-bottom:12px;color:var(--text2);">ÚLTIMAS INCIDENCIAS</div>'
+    +'<div class="twrap"><div class="tscroll"><table>'
+    +'<thead><tr><th>ID</th><th>Cine / Conjunto</th><th>Serie</th><th>Tipo</th><th>Prioridad</th><th>Estado</th><th>Reportado por</th><th>Fecha</th></tr></thead>'
+    +'<tbody id="tbRecientes"></tbody></table></div></div>';
+
+  if(rol!=='cinepolis') buildCharts(incs);
+
+  var recientes=[].concat(incs).sort(function(a,b){return new Date(b.fecha)-new Date(a.fecha);}).slice(0,10);
+  var tb=document.getElementById('tbRecientes');
+  if(!recientes.length){tb.innerHTML='<tr><td colspan="8" class="nodata">No hay incidencias registradas</td></tr>';return;}
+  tb.innerHTML=recientes.map(function(r){
+    var cn=r.cine.length>28?r.cine.substring(0,26)+'…':r.cine;
+    var nu=(r.nombreUsuario||r.usuario);nu=nu.length>22?nu.substring(0,20)+'…':nu;
+    return '<tr style="cursor:pointer;" onclick="openModal(\''+r.id+'\')"><td style="font-family:var(--ff);color:var(--gold);font-weight:600;">'+r.id+'</td><td title="'+r.cine+'">'+cn+'</td><td style="color:var(--cyan);">'+r.serie+'</td><td>'+r.tipo+'</td><td>'+prioBadge(r.prioridad)+'</td><td>'+estadoBadge(r.estado)+'</td><td style="color:var(--text2);font-size:11px;">'+nu+'</td><td style="color:var(--text2);">'+formatDate(r.fecha)+'</td></tr>';
+  }).join('');
+}
+
+function buildCharts(incs){
+  var CO={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1f2b45',titleColor:'#e8eaf0',bodyColor:'#8b95ab',borderColor:'#2a3550',borderWidth:1}},scales:{x:{ticks:{color:'#8b95ab',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},y:{ticks:{color:'#8b95ab',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}}}};
+  var DOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'right',labels:{color:'#8b95ab',font:{size:10},boxWidth:10,padding:8}},tooltip:{backgroundColor:'#1f2b45',titleColor:'#e8eaf0',bodyColor:'#8b95ab'}}};
+
+  var estados=['Abierta','En proceso','Resuelta'];
+  charts['e']=new Chart(document.getElementById('cEstado'),{type:'doughnut',data:{labels:estados,datasets:[{data:estados.map(function(e){return incs.filter(function(i){return i.estado===e;}).length;}),backgroundColor:['rgba(239,68,68,.8)','rgba(249,115,22,.8)','rgba(34,197,94,.8)'],borderColor:'#111827',borderWidth:2}]},options:DOpts});
+
+  var tipos=[...new Set(incs.map(function(i){return i.tipo;}))];
+  charts['t']=new Chart(document.getElementById('cTipo'),{type:'bar',data:{labels:tipos.map(function(t){return t.length>16?t.substring(0,14)+'…':t;}),datasets:[{data:tipos.map(function(t){return incs.filter(function(i){return i.tipo===t;}).length;}),backgroundColor:'rgba(59,130,246,.65)',borderColor:'#3b82f6',borderWidth:1,borderRadius:3}]},options:CO});
+
+  charts['p']=new Chart(document.getElementById('cPrio'),{type:'doughnut',data:{labels:['Normal','Urgente'],datasets:[{data:[incs.filter(function(i){return i.prioridad==='Normal';}).length,incs.filter(function(i){return i.prioridad==='Urgente';}).length],backgroundColor:['rgba(139,149,171,.5)','rgba(239,68,68,.8)'],borderColor:'#111827',borderWidth:2}]},options:DOpts});
+}
+
+// ── NUEVA INCIDENCIA ──
+function renderNueva(container){
+  photoBase64='';
+  container.innerHTML='<div class="form-card">'
+    +'<div class="form-title">Levantar Nueva Incidencia</div>'
+    +'<div class="form-sub">Completa todos los campos obligatorios (*)</div>'
+    +'<div class="form-grid">'
+    +'<div class="form-group"><label class="form-label">Cine / Conjunto *</label><input class="form-input" id="fCine" type="text" placeholder="Ej. CINÉPOLIS PLAZA ARAGÓN"></div>'
+    +'<div class="form-group"><label class="form-label">Número de Serie *</label><input class="form-input" id="fSerie" type="text" placeholder="Ej. SIM-17422"></div>'
+    +'<div class="form-group"><label class="form-label">Tipo de Falla *</label><select class="form-select" id="fTipo"><option value="">— Selecciona —</option><option>OPERANDO PARCIALMENTE</option><option>FUERA DE SERVICIO</option><option>IMAGEN / ESTÉTICA</option><option>MONEDERO / COBRO</option><option>PANTALLA / DISPLAY</option><option>VENTA CERO</option><option>OTRO</option></select></div>'
+    +'<div class="form-group"><label class="form-label">Prioridad *</label><select class="form-select" id="fPrioridad"><option value="Normal">Normal</option><option value="Urgente">🔴 Urgente</option></select></div>'
+    +'<div class="form-group full"><label class="form-label">Descripción del Problema *</label><textarea class="form-textarea" id="fDesc" placeholder="Describe detalladamente qué está pasando..."></textarea></div>'
+    +'<div class="form-group full"><label class="form-label">Foto (opcional)</label><div class="photo-zone"><input type="file" id="fFoto" accept="image/*" onchange="previewPhoto(event)"><div id="photoPlaceholder" style="color:var(--text3);">📷 Haz clic o arrastra una foto aquí</div><img id="photoPreview" class="photo-preview" style="display:none;"></div></div>'
+    +'</div>'
+    +'<button class="submit-btn" onclick="submitInc()">✔ REGISTRAR INCIDENCIA</button>'
+    +'<div class="success-msg" id="successMsg">✅ Incidencia registrada. Mantenimiento fue notificado.</div>'
+    +'</div>';
+}
+
+function previewPhoto(e){
+  var file=e.target.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    photoBase64=ev.target.result;
+    document.getElementById('photoPreview').src=photoBase64;
+    document.getElementById('photoPreview').style.display='block';
+    document.getElementById('photoPlaceholder').style.display='none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function submitInc(){
+  var cine=document.getElementById('fCine').value.trim();
+  var serie=document.getElementById('fSerie').value.trim();
+  var tipo=document.getElementById('fTipo').value;
+  var prioridad=document.getElementById('fPrioridad').value;
+  var desc=document.getElementById('fDesc').value.trim();
+  if(!cine||!serie||!tipo||!desc){alert('Completa todos los campos obligatorios (*)');return;}
+  var incs=getIncs();
+  var newId='INC-'+String(incs.length+1).padStart(3,'0');
+  incs.unshift({id:newId,cine:cine,serie:serie,tipo:tipo,prioridad:prioridad,descripcion:desc,foto:photoBase64,estado:'Abierta',usuario:currentUser.username,nombreUsuario:currentUser.nombre,fecha:new Date().toISOString(),nota:''});
+  saveIncs(incs);
+  updateBadge();
+  ['fCine','fSerie','fDesc'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('fTipo').value='';
+  document.getElementById('fPrioridad').value='Normal';
+  if(document.getElementById('photoPreview')){document.getElementById('photoPreview').style.display='none';document.getElementById('photoPlaceholder').style.display='block';document.getElementById('fFoto').value='';}
+  photoBase64='';
+  var msg=document.getElementById('successMsg');msg.style.display='block';
+  setTimeout(function(){msg.style.display='none';},4000);
+}
+
+// ── LISTA ──
+function renderLista(container){
+  container.innerHTML='<div class="filters">'
+    +'<span class="flabel">Estado</span><select id="fEstado" onchange="refreshLista()"><option value="">Todos</option><option>Abierta</option><option>En proceso</option><option>Resuelta</option></select>'
+    +'<span class="flabel">Tipo</span><select id="fTipoF" onchange="refreshLista()"><option value="">Todos</option><option>OPERANDO PARCIALMENTE</option><option>FUERA DE SERVICIO</option><option>IMAGEN / ESTÉTICA</option><option>MONEDERO / COBRO</option><option>PANTALLA / DISPLAY</option><option>VENTA CERO</option><option>OTRO</option></select>'
+    +'<span class="flabel">Prioridad</span><select id="fPrioF" onchange="refreshLista()"><option value="">Todas</option><option>Urgente</option><option>Normal</option></select>'
+    +'<input type="text" id="fBuscar" placeholder="Buscar cine, serie, ID..." oninput="refreshLista()" style="width:190px;">'
+    +'<button onclick="clearListFilters()" style="background:transparent;border:1px solid var(--border2);color:var(--text2);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-family:var(--fb);">Limpiar</button>'
+    +'<span class="rcount" id="listaCount"></span></div>'
+    +'<div class="twrap"><div class="tscroll"><table>'
+    +'<thead><tr><th>ID</th><th>Cine / Conjunto</th><th>Serie</th><th>Tipo</th><th>Prioridad</th><th>Estado</th><th>Reportado por</th><th>Fecha</th><th></th></tr></thead>'
+    +'<tbody id="tbLista"></tbody></table></div></div>';
+  refreshLista();
+}
+
+function refreshLista(){
+  var est=document.getElementById('fEstado')?document.getElementById('fEstado').value:'';
+  var tip=document.getElementById('fTipoF')?document.getElementById('fTipoF').value:'';
+  var pri=document.getElementById('fPrioF')?document.getElementById('fPrioF').value:'';
+  var bus=(document.getElementById('fBuscar')?document.getElementById('fBuscar').value:'').toLowerCase();
+  var rol=currentUser.rol;
+  var data=getIncs().filter(function(r){
+    if(rol==='cinepolis'&&r.usuario!==currentUser.username)return false;
+    if(est&&r.estado!==est)return false;
+    if(tip&&r.tipo!==tip)return false;
+    if(pri&&r.prioridad!==pri)return false;
+    if(bus&&[r.cine,r.serie,r.id,r.tipo,r.nombreUsuario||''].join(' ').toLowerCase().indexOf(bus)<0)return false;
+    return true;
+  });
+  var lc=document.getElementById('listaCount');if(lc)lc.textContent=data.length+' registros';
+  var tb=document.getElementById('tbLista');if(!tb)return;
+  if(!data.length){tb.innerHTML='<tr><td colspan="9" class="nodata">Sin resultados</td></tr>';return;}
+  tb.innerHTML=data.map(function(r){
+    var cn=r.cine.length>24?r.cine.substring(0,22)+'…':r.cine;
+    var nu=(r.nombreUsuario||r.usuario);nu=nu.length>20?nu.substring(0,18)+'…':nu;
+    return '<tr><td style="font-family:var(--ff);color:var(--gold);font-weight:600;">'+r.id+'</td><td title="'+r.cine+'">'+cn+'</td><td style="color:var(--cyan);">'+r.serie+'</td><td>'+r.tipo+'</td><td>'+prioBadge(r.prioridad)+'</td><td>'+estadoBadge(r.estado)+'</td><td style="color:var(--text2);font-size:11px;" title="'+(r.nombreUsuario||r.usuario)+'">'+nu+'</td><td style="color:var(--text2);">'+formatDate(r.fecha)+'</td><td><button onclick="openModal(\''+r.id+'\')" style="background:var(--panel3);border:1px solid var(--border2);color:var(--text);padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;font-family:var(--fb);">Ver</button></td></tr>';
+  }).join('');
+}
+
+function clearListFilters(){
+  ['fEstado','fTipoF','fPrioF'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  var fb=document.getElementById('fBuscar');if(fb)fb.value='';
+  refreshLista();
+}
+
+// ── MODAL DETALLE ──
+function openModal(id){
+  var incs=getIncs();
+  var r=incs.find(function(x){return x.id===id;});
+  if(!r)return;
+  editingIncId=id;
+  var canEdit=currentUser.rol==='mantenimiento'||currentUser.rol==='admin';
+  var statusOptions=['Abierta','En proceso','Resuelta'].map(function(s){return '<option '+(r.estado===s?'selected':'')+'>'+s+'</option>';}).join('');
+  document.getElementById('modalContent').innerHTML=
+    '<div class="detail-row"><span class="detail-key">ID</span><span class="detail-val" style="font-family:var(--ff);color:var(--gold);font-weight:700;">'+r.id+'</span></div>'
+    +'<div class="detail-row"><span class="detail-key">Cine / Conjunto</span><span class="detail-val">'+r.cine+'</span></div>'
+    +'<div class="detail-row"><span class="detail-key">Serie</span><span class="detail-val" style="color:var(--cyan);">'+r.serie+'</span></div>'
+    +'<div class="detail-row"><span class="detail-key">Tipo de Falla</span><span class="detail-val">'+r.tipo+'</span></div>'
+    +'<div class="detail-row"><span class="detail-key">Prioridad</span><span class="detail-val">'+prioBadge(r.prioridad)+'</span></div>'
+    +'<div class="detail-row"><span class="detail-key">Estado</span><span class="detail-val">'+estadoBadge(r.estado)+'</span></div>'
+    +'<div class="detail-row"><span class="detail-key">Reportado por</span><span class="detail-val" style="color:var(--cyan);">'+(r.nombreUsuario||r.usuario)+'</span></div>'
+    +'<div class="detail-row"><span class="detail-key">Fecha</span><span class="detail-val">'+formatDate(r.fecha)+'</span></div>'
+    +'<div class="detail-row" style="flex-direction:column;gap:6px;"><span class="detail-key">Descripción</span><span class="detail-val" style="color:var(--text2);line-height:1.6;">'+r.descripcion+'</span></div>'
+    +(r.foto?'<img src="'+r.foto+'" class="modal-photo" style="margin-top:12px;">':'')
+    +(r.nota?'<div class="detail-row" style="margin-top:14px;flex-direction:column;gap:4px;"><span class="detail-key" style="color:var(--gold);">Nota de Mantenimiento</span><span class="detail-val" style="color:var(--text2);line-height:1.6;">'+r.nota+'</span></div>':'')
+    +(canEdit?'<div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px;"><div class="detail-key" style="margin-bottom:8px;color:var(--gold);">Actualizar</div><select class="status-select" id="modalStatus">'+statusOptions+'</select><textarea class="nota-input" id="modalNota" placeholder="Nota de mantenimiento...">'+(r.nota||'')+'</textarea><button class="save-status-btn" onclick="saveStatus()">Guardar Cambios</button></div>':'');
+  document.getElementById('modalBg').classList.add('open');
+}
+
+function saveStatus(){
+  var incs=getIncs();
+  var r=incs.find(function(x){return x.id===editingIncId;});
+  if(!r)return;
+  r.estado=document.getElementById('modalStatus').value;
+  r.nota=document.getElementById('modalNota').value.trim();
+  saveIncs(incs);
+  updateBadge();
+  closeModal();
+  refreshLista();
+}
+
+function closeModal(e){
+  if(e&&e.target!==document.getElementById('modalBg'))return;
+  document.getElementById('modalBg').classList.remove('open');
+  editingIncId=null;
+}
+
+// ── USUARIOS ──
+function renderUsuarios(container){
+  var users=getUsers();
+  var rolBadge={cinepolis:'<span class="badge bc">Cinépolis</span>',mantenimiento:'<span class="badge bo">Mantenimiento</span>',admin:'<span class="badge bp">Admin</span>'};
+  container.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">'
+    +'<div><div style="font-family:var(--ff);font-size:18px;font-weight:700;">Gestión de Usuarios</div><div style="font-size:11px;color:var(--text2);margin-top:2px;">'+users.length+' usuarios registrados</div></div>'
+    +'<button class="btn-primary" onclick="openUserModal()">+ Nuevo Usuario</button></div>'
+    +'<div class="twrap"><div class="tscroll"><table>'
+    +'<thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Acciones</th></tr></thead>'
+    +'<tbody>'+users.map(function(u){
+      return '<tr><td style="font-family:var(--ff);color:var(--gold);font-weight:600;">'+u.username+'</td><td>'+u.nombre+'</td><td>'+(rolBadge[u.rol]||u.rol)+'</td>'
+        +'<td style="display:flex;gap:6px;"><button class="btn-sm" onclick="openUserModal(\''+u.id+'\')">Editar</button>'
+        +(u.username!=='admin'?'<button class="btn-sm danger" onclick="deleteUser(\''+u.id+'\')">Eliminar</button>':'')
+        +'</td></tr>';
+    }).join('')+'</tbody></table></div></div>';
+}
+
+function openUserModal(userId){
+  editingUserId=userId||null;
+  var users=getUsers();
+  var u=userId?users.find(function(x){return x.id===userId;}):null;
+  document.getElementById('userModalTitle').textContent=u?'Editar Usuario':'Nuevo Usuario';
+  document.getElementById('userModalContent').innerHTML=
+    '<div class="form-group" style="margin-bottom:14px;"><label class="form-label">Nombre completo</label><input class="form-input" id="uNombre" type="text" value="'+(u?u.nombre:'')+'" placeholder="Nombre del usuario"></div>'
+    +'<div class="form-group" style="margin-bottom:14px;"><label class="form-label">Usuario (login)</label><input class="form-input" id="uUser" type="text" value="'+(u?u.username:'')+'" placeholder="usuario123" '+(u&&u.username==='admin'?'readonly':'')+' autocomplete="off"></div>'
+    +'<div class="form-group" style="margin-bottom:14px;"><label class="form-label">Contraseña '+(u?'(vacío = no cambiar)':'*')+'</label><input class="form-input" id="uPass" type="password" placeholder="••••••••" autocomplete="new-password"></div>'
+    +'<div class="form-group" style="margin-bottom:20px;"><label class="form-label">Rol</label><select class="form-select" id="uRol" '+(u&&u.username==='admin'?'disabled':'')+'><option value="cinepolis" '+(u&&u.rol==='cinepolis'?'selected':'')+'>Cinépolis</option><option value="mantenimiento" '+(u&&u.rol==='mantenimiento'?'selected':'')+'>Mantenimiento</option><option value="admin" '+(u&&u.rol==='admin'?'selected':'')+'>Admin</option></select></div>'
+    +'<div style="display:flex;gap:10px;"><button class="btn-primary" onclick="saveUser()">Guardar</button><button class="btn-ghost" onclick="closeUserModal()">Cancelar</button></div>'
+    +'<div style="color:var(--red);font-size:12px;margin-top:8px;" id="userFormErr"></div>';
+  document.getElementById('modalUserBg').classList.add('open');
+}
+
+function saveUser(){
+  var nombre=document.getElementById('uNombre').value.trim();
+  var username=document.getElementById('uUser').value.trim().toLowerCase();
+  var pass=document.getElementById('uPass').value;
+  var rol=document.getElementById('uRol').value;
+  var err=document.getElementById('userFormErr');
+  if(!nombre||!username){err.textContent='Nombre y usuario son obligatorios';return;}
+  var users=getUsers();
+  if(editingUserId){
+    var idx=users.findIndex(function(x){return x.id===editingUserId;});
+    if(idx>=0){
+      if(users.find(function(x){return x.username===username&&x.id!==editingUserId;})){err.textContent='Ese usuario ya existe';return;}
+      users[idx].nombre=nombre;users[idx].username=username;users[idx].rol=rol;
+      if(pass)users[idx].pass=pass;
+    }
+  } else {
+    if(!pass){err.textContent='La contraseña es obligatoria';return;}
+    if(users.find(function(x){return x.username===username;})){err.textContent='Ese usuario ya existe';return;}
+    users.push({id:'u'+Date.now(),username:username,pass:pass,rol:rol,nombre:nombre});
+  }
+  saveUsers(users);
+  closeUserModal();
+  renderTab('usuarios');
+}
+
+function deleteUser(userId){
+  if(!confirm('¿Eliminar este usuario?'))return;
+  saveUsers(getUsers().filter(function(x){return x.id!==userId;}));
+  renderTab('usuarios');
+}
+
+function closeUserModal(e){
+  if(e&&e.target!==document.getElementById('modalUserBg'))return;
+  document.getElementById('modalUserBg').classList.remove('open');
+  editingUserId=null;
+}
+
+// ── HELPERS ──
+function updateBadge(){
+  var nb=document.getElementById('nbTotal');if(!nb)return;
+  var rol=currentUser.rol;
+  var count=getIncs().filter(function(r){
+    if(r.estado==='Resuelta')return false;
+    if(rol==='cinepolis')return r.usuario===currentUser.username;
+    return true;
+  }).length;
+  nb.textContent=count;
+}
+
+function prioBadge(p){return p==='Urgente'?'<span class="badge br">🔴 Urgente</span>':'<span class="badge bw">Normal</span>';}
+function estadoBadge(e){var m={'Abierta':'<span class="badge br">Abierta</span>','En proceso':'<span class="badge bo">En proceso</span>','Resuelta':'<span class="badge bg">Resuelta</span>'};return m[e]||'<span class="badge bw">'+e+'</span>';}
+function formatDate(iso){if(!iso)return'—';var d=new Date(iso);return d.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});}
+
+checkSession();
+</script>
+</body>
+</html>
