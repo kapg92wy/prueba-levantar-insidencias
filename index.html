@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Centro de Servicio — Cinépolis</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060a12;--bg2:#0a0f1c;--bg3:#0f1525;
+  --panel:#111827;--panel2:#1a2338;--panel3:#1f2a40;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.12);
+  --gold:#f5c518;--gold2:#e8a800;
+  --red:#ef4444;--orange:#f97316;--green:#22c55e;
+  --blue:#3b82f6;--cyan:#06b6d4;--purple:#8b5cf6;
+  --text:#e8eaf0;--text2:#8b95ab;--text3:#4b5671;
+  --ff:'Rajdhani',sans-serif;--fb:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:13px;min-height:100vh;}
+/* LOGIN */
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 0%,rgba(245,197,24,0.08) 0%,transparent 60%),var(--bg);}
+.login-box{background:var(--panel);border:1px solid var(--border2);border-radius:16px;padding:40px 48px;width:100%;max-width:420px;box-shadow:0 32px 80px rgba(0,0,0,0.5);}
+.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;}
+.login-logo-icon{width:44px;height:44px;background:var(--gold);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:var(--ff);font-weight:700;font-size:20px;color:#060a12;}
+.login-title{font-family:var(--ff);font-size:22px;font-weight:700;letter-spacing:1.5px;}
+.login-sub{font-size:11px;color:var(--text2);letter-spacing:.5px;}
+.login-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px;display:block;}
+.login-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:14px;font-family:var(--fb);padding:11px 14px;outline:none;transition:border-color .2s;margin-bottom:16px;}
+.login-input:focus{border-color:var(--gold);}
+.login-btn{width:100%;background:var(--gold);color:#060a12;border:none;border-radius:8px;padding:13px;font-size:14px;font-family:var(--ff);font-weight:700;letter-spacing:1px;cursor:pointer;transition:background .2s;margin-top:4px;}
+.login-btn:hover:not(:disabled){background:var(--gold2);}
+.login-btn:disabled{background:var(--text3);cursor:not-allowed;color:var(--border2);}
+.login-err{color:var(--red);font-size:12px;margin-top:8px;text-align:center;min-height:18px;}
+.login-hint{margin-top:20px;padding-top:16px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);line-height:1.9;}
+.login-hint span{color:var(--text2);}
+/* APP */
+#app{display:none;}
+.header{background:linear-gradient(135deg,#080d1c,#0a1428,#060a12);border-bottom:2px solid var(--gold);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;box-shadow:0 4px 32px rgba(245,197,24,0.08);}
+.hlogo{width:34px;height:34px;background:var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:var(--ff);font-weight:700;font-size:16px;color:#060a12;margin-right:12px;}
+.htitle{font-family:var(--ff);font-size:19px;font-weight:700;letter-spacing:2px;}
+.hsub{font-size:10px;color:var(--text2);letter-spacing:.8px;text-transform:uppercase;}
+.huser{display:flex;align-items:center;gap:10px;}
+.hbadge{font-size:10px;padding:4px 10px;border-radius:20px;font-weight:600;letter-spacing:.5px;}
+.hbadge.cine{background:rgba(6,182,212,.15);color:var(--cyan);border:1px solid rgba(6,182,212,.3);}
+.hbadge.mant{background:rgba(245,197,24,.15);color:var(--gold);border:1px solid rgba(245,197,24,.3);}
+.hbadge.admin{background:rgba(139,92,246,.15);color:var(--purple);border:1px solid rgba(139,92,246,.3);}
+.logout-btn{background:transparent;border:1px solid var(--border2);color:var(--text2);padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-family:var(--fb);transition:all .2s;}
+.logout-btn:hover{border-color:var(--red);color:var(--red);}
+.nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;display:flex;overflow-x:auto;}
+.ntab{padding:13px 18px;font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s;letter-spacing:.5px;text-transform:uppercase;user-select:none;}
+.ntab:hover{color:var(--text);}
+.ntab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.nbadge{display:inline-block;background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;margin-left:5px;vertical-align:middle;}
+.main{padding:20px 24px;max-width:1600px;margin:0 auto;}
+.tab{display:none;}.tab.active{display:block;}
+/* KPI CARDS & CHARTS */
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px;}
+.kcard{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px;position:relative;overflow:hidden;}
+.kcard::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.kcard.gold::before{background:var(--gold);}.kcard.red::before{background:var(--red);}.kcard.orange::before{background:var(--orange);}.kcard.green::before{background:var(--green);}.kcard.cyan::before{background:var(--cyan);}.kcard.purple::before{background:var(--purple);}.kcard.blue::before{background:var(--blue);}
+.klabel{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;}
+.kval{font-family:var(--ff);font-size:32px;font-weight:700;line-height:1;}
+.kcard.gold .kval{color:var(--gold);}.kcard.red .kval{color:var(--red);}.kcard.orange .kval{color:var(--orange);}.kcard.green .kval{color:var(--green);}.kcard.cyan .kval{color:var(--cyan);}.kcard.purple .kval{color:var(--purple);}.kcard.blue .kval{color:var(--blue);}
+.cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+.cgrid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+.ccard{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;}
+.ctitle{font-family:var(--ff);font-size:14px;font-weight:600;margin-bottom:4px;}
+.csub{font-size:10px;color:var(--text2);margin-bottom:12px;}
+.cwrap{position:relative;height:180px;}
+.cwrap2{position:relative;height:150px;}
+/* FORMS */
+.form-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:28px;}
+.form-title{font-family:var(--ff);font-size:18px;font-weight:700;margin-bottom:4px;}
+.form-sub{font-size:11px;color:var(--text2);margin-bottom:24px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group.full{grid-column:1/-1;}
+.form-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;}
+.form-input,.form-select,.form-textarea{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;font-family:var(--fb);padding:10px 13px;outline:none;transition:border-color .2s;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--gold);}
+.form-textarea{resize:vertical;min-height:80px;}
+.photo-zone{border:2px dashed var(--border2);border-radius:8px;padding:24px;text-align:center;cursor:pointer;position:relative;}
+.photo-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.photo-preview{max-height:160px;border-radius:6px;margin-top:10px;object-fit:cover;}
+.submit-btn{margin-top:20px;background:var(--gold);color:#060a12;border:none;border-radius:8px;padding:13px 32px;font-size:14px;font-family:var(--ff);font-weight:700;cursor:pointer;}
+/* FILTERS & TABLES */
+.fbar,.filters{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+.flabel{font-size:10px;color:var(--text2);text-transform:uppercase;white-space:nowrap;}
+select,input[type=text]{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;padding:6px 10px;outline:none;}
+.rcount{font-size:11px;color:var(--text3);margin-left:auto;}
+.twrap{background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.tscroll{overflow-x:auto;max-height:520px;overflow-y:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead{position:sticky;top:0;z-index:5;}
+th{background:var(--panel2);color:var(--text2);font-size:10px;font-weight:600;text-transform:uppercase;padding:10px 12px;text-align:left;border-bottom:1px solid var(--border2);white-space:nowrap;}
+td{padding:9px 12px;border-bottom:1px solid var(--border);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+tr:hover td{background:rgba(255,255,255,.02);}
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;}
+.br{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);}
+.bo{background:rgba(249,115,22,.15);color:var(--orange);border:1px solid rgba(249,115,22,.3);}
+.bg{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3);}
+.bb{background:rgba(59,130,246,.15);color:var(--blue);border:1px solid rgba(59,130,246,.3);}
+.bc{background:rgba(6,182,212,.15);color:var(--cyan);border:1px solid rgba(6,182,212,.3);}
+.bp{background:rgba(139,92,246,.15);color:var(--purple);border:1px solid rgba(139,92,246,.3);}
+.bw{background:rgba(139,149,171,.1);color:var(--text2);border:1px solid var(--border);}
+.nodata{text-align:center;padding:48px;color:var(--text3);font-size:13px;}
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--panel);border:1px solid var(--border2);border-radius:14px;padding:28px;max-width:620px;width:100%;margin:16px;max-height:90vh;overflow-y:auto;}
+.modal-title{font-family:var(--ff);font-size:17px;font-weight:700;margin-bottom:16px;display:flex;justify-content:space-between;}
+.modal-close{background:transparent;border:none;color:var(--text2);font-size:20px;cursor:pointer;}
+.detail-row{display:flex;gap:8px;margin-bottom:10px;align-items:flex-start;}
+.detail-key{font-size:10px;color:var(--text2);text-transform:uppercase;min-width:130px;flex-shrink:0;}
+.detail-val{font-size:13px;color:var(--text);}
+.btn-primary{padding:9px 18px;background:var(--gold);color:#060a12;border:none;border-radius:7px;font-weight:700;cursor:pointer;}
+.btn-ghost{padding:9px 18px;background:transparent;color:var(--text2);border:1px solid var(--border2);border-radius:7px;cursor:pointer;}
+.btn-sm{padding:4px 10px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:11px;cursor:pointer;}
+/* ACTUALIZADOR & DASHBOARD ESPECIFICO */
+.upd-zone{border:2px dashed var(--border2);border-radius:10px;padding:32px;text-align:center;cursor:pointer;position:relative;background:var(--panel);}
+.upd-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.top10-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px;}
+.top10-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+.top10-rank{font-family:var(--ff);font-size:20px;font-weight:700;min-width:28px;text-align:center;}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">CP</div>
+      <div><div class="login-title">CENTRO DE SERVICIO</div><div class="login-sub">Cinépolis · Sistema Sincronizado</div></div>
+    </div>
+    <label class="login-label">Usuario</label>
+    <input class="login-input" id="loginUser" type="text" placeholder="usuario" autocomplete="off">
+    <label class="login-label">Contraseña</label>
+    <input class="login-input" id="loginPass" type="password" placeholder="••••••••">
+    <button class="login-btn" id="btnLogin" onclick="doLogin()">CONECTANDO...</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<div id="app">
+  <header class="header">
+    <div style="display:flex;align-items:center;">
+      <div class="hlogo">CP</div>
+      <div><div class="htitle" id="headerTitle">CENTRO DE SERVICIO</div><div class="hsub" id="headerSub">Gestión en la Nube</div></div>
+    </div>
+    <div class="huser">
+      <span class="hbadge" id="roleBadge"></span>
+      <span style="font-size:12px;color:var(--text2);" id="userLabel"></span>
+      <button class="logout-btn" onclick="doLogout()">Salir</button>
+    </div>
+  </header>
+  <nav class="nav" id="mainNav"></nav>
+  <div class="main" id="mainContent"></div>
+</div>
+
+<div class="modal-bg" id="modalBg" onclick="closeModal(event)"><div class="modal" onclick="event.stopPropagation()"><div class="modal-title"><span>Detalle de Incidencia</span><button class="modal-close" onclick="closeModal()">✕</button></div><div id="modalContent"></div></div></div>
+<div class="modal-bg" id="modalUserBg" onclick="closeUserModal(event)"><div class="modal" onclick="event.stopPropagation()" style="max-width:460px;"><div class="modal-title"><span id="userModalTitle">Usuario</span><button class="modal-close" onclick="closeUserModal()">✕</button></div><div id="userModalContent"></div></div></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  1. CONFIGURACIÓN SUPABASE (Reemplaza con tus llaves)
+// ═══════════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://lgvwtrwrwivzwcathviv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_6yCTMT1SFK4j0_0hRet1gQ_ZjhC_K3K';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ═══════════════════════════════════════════════════════════════
+//  2. CAPA DE DATOS (API Y CACHÉ GLOBAL)
+// ═══════════════════════════════════════════════════════════════
+// Caché local para que la UI responda instantáneamente
+const DB = { users: [], incs: [], logs: [] }; 
+// Datos del Dashboard Excel
+const D = { "kpi":{}, "incidencias":[], "venta_alerta":[], "romel":[], "by_region":[], "nombre_count":{}, "clasif_count":{}, "dias_ranges":{}, "top_priority":[], "fecha_actualizacion":"Sin actualizar" };
+
+const API = {
+  // Carga todo desde la nube al iniciar
+  async init() {
+    try {
+      const [u, i, l, snap] = await Promise.all([
+        supabase.from('cp_usuarios').select('*'),
+        supabase.from('cp_incidencias').select('*').order('created_at', {ascending: false}),
+        supabase.from('cp_incidencias_log').select('*').order('created_at', {ascending: false}),
+        supabase.from('cp_dashboard_snapshot').select('datos').eq('id', 1).single()
+      ]);
+      
+      if (u.data) DB.users = u.data;
+      if (i.data) DB.incs = i.data;
+      if (l.data) DB.logs = l.data;
+      if (snap.data && snap.data.datos && snap.data.datos.kpi) {
+        Object.assign(D, snap.data.datos);
+      }
+      return true;
+    } catch (err) {
+      console.error("Error cargando de Supabase:", err);
+      return false;
+    }
+  },
+  
+  // Incidencias
+  async saveIncidencia(inc) {
+    DB.incs.unshift(inc); // Cache local
+    await supabase.from('cp_incidencias').insert([inc]); // Nube
+  },
+  async updateIncidencia(id, data) {
+    let r = DB.incs.find(x => x.id === id);
+    if(r) Object.assign(r, data);
+    await supabase.from('cp_incidencias').update(data).eq('id', id);
+  },
+  async deleteIncidencia(id) {
+    DB.incs = DB.incs.filter(x => x.id !== id);
+    await supabase.from('cp_incidencias').delete().eq('id', id);
+  },
+  
+  // Logs
+  async saveLog(log) {
+    DB.logs.unshift(log);
+    await supabase.from('cp_incidencias_log').insert([log]);
+  },
+  
+  // Usuarios
+  async saveUser(user, isNew) {
+    if(isNew) {
+      DB.users.push(user);
+      await supabase.from('cp_usuarios').insert([user]);
+    } else {
+      let u = DB.users.find(x => x.id === user.id);
+      if(u) Object.assign(u, user);
+      await supabase.from('cp_usuarios').update(user).eq('id', user.id);
+    }
+  },
+  async deleteUser(id) {
+    let u = DB.users.find(x => x.id === id);
+    if(u) u.activo = 0;
+    await supabase.from('cp_usuarios').update({activo: 0}).eq('id', id);
+  },
+
+  // Dashboard Excel
+  async saveDashboardToCloud(newD, username) {
+    Object.assign(D, newD); // Actualiza RAM local
+    await supabase.from('cp_dashboard_snapshot').update({
+        datos: newD,
+        actualizado_por: username,
+        updated_at: new Date().toISOString()
+    }).eq('id', 1);
+  }
+};
+
+// Sustitutos de las antiguas funciones locales
+function getUsers() { return DB.users; }
+function getIncs()  { return DB.incs; }
+function getLog()   { return DB.logs; }
+
+function writeLog(incId, accion, estadoAnterior, estadoNuevo, nota) {
+  if(!currentUser) return;
+  API.saveLog({
+    id: 'log-'+Date.now(),
+    incidencia_id: incId,
+    usuario_id: currentUser.id,
+    nombre_usuario: currentUser.nombre,
+    accion: accion,
+    estado_anterior: estadoAnterior || '',
+    estado_nuevo: estadoNuevo || '',
+    nota: nota || '',
+    created_at: new Date().toISOString()
+  });
+}
+
+function incBelongsTo(inc, username) {
+  var u = DB.users.find(x => x.username === username);
+  if(!u) return false;
+  return inc.usuario_id === u.id || inc.usuario_id === username;
+}
+
+function nowISO(){return new Date().toISOString();}
+function newId(prefix){return (prefix||'id')+'-'+Date.now()+'-'+Math.random().toString(36).slice(2,6);}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  3. LÓGICA DE LA APLICACIÓN (UI y Flujo)
+// ═══════════════════════════════════════════════════════════════
+var currentUser=null, editingIncId=null, editingUserId=null, charts={}, photoBase64='';
+const PS=50; var incPg=1, prioPg=1;
+
+// Inicialización asíncrona de la aplicación
+document.addEventListener('DOMContentLoaded', async () => {
+    const btn = document.getElementById('btnLogin');
+    btn.disabled = true;
+    
+    // Descargamos la BD de Supabase
+    const success = await API.init(); 
+    
+    if(success) {
+        btn.textContent = 'INGRESAR';
+        btn.disabled = false;
+        checkSession();
+    } else {
+        btn.textContent = 'ERROR DE CONEXIÓN';
+        document.getElementById('loginErr').textContent = 'Revisa tus llaves de Supabase en el código.';
+    }
+});
+
+function doLogin(){
+  var u = document.getElementById('loginUser').value.trim().toLowerCase();
+  var p = document.getElementById('loginPass').value;
+  var err = document.getElementById('loginErr');
+  
+  var found = DB.users.find(x => x.username === u && x.password === p && x.activo !== 0);
+  
+  // Si no hay usuarios en la BD, permite admin/admin123 de rescate
+  if(DB.users.length === 0 && u === 'admin' && p === 'admin123') {
+      found = {id:'u1', username:'admin', password:'123', rol:'admin', nombre:'Admin Maestro', activo:1};
+      API.saveUser(found, true); // Lo guarda en Supabase para el futuro
+  }
+
+  if(!found){err.textContent='Usuario o contraseña incorrectos';return;}
+  err.textContent='';
+  currentUser = Object.assign({}, found);
+  sessionStorage.setItem('cp_session', JSON.stringify(currentUser));
+  initApp();
+}
+
+function checkSession(){
+  try{var s=sessionStorage.getItem('cp_session');if(s){currentUser=JSON.parse(s);initApp();}}catch(e){}
+}
+
+function doLogout(){
+  currentUser=null; sessionStorage.removeItem('cp_session');
+  Object.values(charts).forEach(c => {try{c.destroy();}catch(e){}}); charts={};
+  document.getElementById('app').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+}
+
+function initApp(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='block';
+
+  var rolMap={cinepolis:'cine',mantenimiento:'mant',admin:'admin'};
+  var rolLabel={cinepolis:'CINÉPOLIS',mantenimiento:'MANTENIMIENTO',admin:'ADMINISTRADOR'};
+  var badge=document.getElementById('roleBadge');
+  badge.textContent=rolLabel[currentUser.rol]||currentUser.rol.toUpperCase();
+  badge.className='hbadge '+(rolMap[currentUser.rol]||'bw');
+  document.getElementById('userLabel').textContent=currentUser.nombre;
+
+  buildNav();
+  var firstTab = currentUser.rol==='cinepolis' ? 'inicio' : currentUser.rol==='mantenimiento' ? 'incidencias_cines' : 'dashboard';
+  renderTab(firstTab);
+}
+
+function buildNav(){
+  var rol=currentUser.rol;
+  var tabs=[];
+  if(rol==='cinepolis'){
+    tabs=[{id:'inicio',label:'🏠 Mi Panel'}, {id:'nueva',label:'➕ Reportar'}, {id:'lista',label:'📋 Mis Incidencias',badge:true}];
+  } else if(rol==='mantenimiento'){
+    tabs=[{id:'incidencias_cines',label:'📩 Bandeja',badge:true}, {id:'dashboard',label:'📊 Resumen General'}, {id:'dashboard_incidencias',label:'🔧 Base Máquinas'}];
+  } else {
+    tabs=[{id:'dashboard',label:'📊 Resumen General'}, {id:'incidencias_cines',label:'📩 Bandeja',badge:true}, {id:'dashboard_incidencias',label:'🔧 Base Máquinas'}, {id:'actualizador',label:'⚡ Actualizar Excel'}, {id:'usuarios',label:'👥 Usuarios'}];
+  }
+  var nav=document.getElementById('mainNav');
+  nav.innerHTML=tabs.map(t => '<div class="ntab" data-tab="'+t.id+'">'+t.label+(t.badge?'<span class="nbadge" id="nbTotal">0</span>':'')+'</div>').join('');
+  nav.querySelectorAll('.ntab').forEach(t => {
+    t.addEventListener('click', function(){
+      nav.querySelectorAll('.ntab').forEach(x => x.classList.remove('active'));
+      this.classList.add('active'); renderTab(this.dataset.tab);
+    });
+  });
+  updateBadge();
+}
+
+function renderTab(tab){
+  var mc=document.getElementById('mainContent');
+  Object.values(charts).forEach(c => {try{c.destroy();}catch(e){}}); charts={};
+  mc.innerHTML='<div id="tab-'+tab+'" class="tab active"></div>';
+  var div=document.getElementById('tab-'+tab);
+  
+  if(tab==='inicio') renderInicio(div);
+  else if(tab==='nueva') renderNueva(div);
+  else if(tab==='lista') renderLista(div);
+  else if(tab==='usuarios') renderUsuarios(div);
+  else if(tab==='incidencias_cines') renderIncidenciasCines(div);
+  else if(tab==='dashboard') renderDashboard(div);
+  else if(tab==='dashboard_incidencias') renderIncidencias(div);
+  else if(tab==='actualizador') renderActualizador(div);
+  else if(tab==='log') renderLog(div);
+  
+  var nav=document.getElementById('mainNav');
+  nav.querySelectorAll('.ntab').forEach(t => { if(t.dataset.tab===tab) t.classList.add('active'); });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  VISTAS CINE (Crear / Leer)
+// ═══════════════════════════════════════════════════════════════
+function renderInicio(container){
+  var incs=getIncs().filter(i => incBelongsTo(i,currentUser.username));
+  container.innerHTML=
+    '<div class="kgrid">'
+    +'<div class="kcard gold"><div class="klabel">Total</div><div class="kval">'+incs.length+'</div></div>'
+    +'<div class="kcard red"><div class="klabel">Abiertas</div><div class="kval">'+incs.filter(i=>i.estado==='Abierta').length+'</div></div>'
+    +'</div>'
+    +'<div style="font-weight:bold;margin-bottom:10px;">ÚLTIMAS INCIDENCIAS</div>'
+    +'<div class="twrap"><div class="tscroll"><table><thead><tr><th>ID</th><th>Cine</th><th>Serie</th><th>Tipo</th><th>Estado</th><th>Fecha</th></tr></thead><tbody id="tbRecientes"></tbody></table></div></div>';
+
+  var recientes=incs.slice(0,10);
+  var tb=document.getElementById('tbRecientes');
+  if(!recientes.length){tb.innerHTML='<tr><td colspan="6" class="nodata">Sin incidencias.</td></tr>';return;}
+  tb.innerHTML=recientes.map(r => '<tr onclick="openModal(\''+r.id+'\')"><td>'+r.id+'</td><td>'+r.cine+'</td><td>'+r.serie+'</td><td>'+r.tipo+'</td><td>'+estadoBadge(r.estado)+'</td><td>'+formatDate(r.created_at)+'</td></tr>').join('');
+}
+
+function renderNueva(container){
+  photoBase64='';
+  container.innerHTML='<div class="form-card"><div class="form-title">Reportar Incidencia</div>'
+    +'<div class="form-grid">'
+    +'<div class="form-group"><label class="form-label">Cine</label><input class="form-input" id="fCine" type="text"></div>'
+    +'<div class="form-group"><label class="form-label">Serie</label><input class="form-input" id="fSerie" type="text"></div>'
+    +'<div class="form-group full"><label class="form-label">Descripción</label><textarea class="form-textarea" id="fDesc"></textarea></div>'
+    +'</div><button class="submit-btn" onclick="submitInc()">REGISTRAR</button></div>';
+}
+
+function submitInc(){
+  var cine=document.getElementById('fCine').value.trim();
+  var serie=document.getElementById('fSerie').value.trim();
+  var desc=document.getElementById('fDesc').value.trim();
+  if(!cine||!serie||!desc){alert('Completa los campos');return;}
+  
+  var newIncId = newId('INC');
+  var newInc = {
+    id: newIncId, cine: cine, serie: serie, tipo: 'OTRO', prioridad: 'Normal',
+    descripcion: desc, foto_url: '', estado: 'Abierta',
+    usuario_id: currentUser.id, nombre_usuario: currentUser.nombre,
+    nota_manto: '', created_at: nowISO(), updated_at: nowISO()
+  };
+  
+  // Guardamos usando la API (va a RAM y a Supabase)
+  API.saveIncidencia(newInc);
+  writeLog(newIncId, 'creacion', '', 'Abierta', 'Creada por ' + currentUser.nombre);
+  
+  updateBadge();
+  alert("Registrada correctamente");
+  renderTab('lista');
+}
+
+function renderLista(container){
+  container.innerHTML='<div class="twrap"><div class="tscroll"><table><thead><tr><th>ID</th><th>Cine</th><th>Serie</th><th>Estado</th><th>Fecha</th><th></th></tr></thead><tbody id="tbLista"></tbody></table></div></div>';
+  refreshLista();
+}
+function refreshLista(){
+  var data=getIncs().filter(r => currentUser.rol==='cinepolis' ? incBelongsTo(r,currentUser.username) : true);
+  var tb=document.getElementById('tbLista');if(!tb)return;
+  tb.innerHTML=data.map(r => '<tr><td>'+r.id+'</td><td>'+r.cine+'</td><td>'+r.serie+'</td><td>'+estadoBadge(r.estado)+'</td><td>'+formatDate(r.created_at)+'</td><td><button onclick="openModal(\''+r.id+'\')" class="btn-sm">Ver</button></td></tr>').join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  BANDEJA MANTENIMIENTO
+// ═══════════════════════════════════════════════════════════════
+function renderIncidenciasCines(container){
+  container.innerHTML='<div style="font-weight:bold;margin-bottom:10px;">BANDEJA DE ENTRADA</div><div class="twrap"><div class="tscroll"><table><thead><tr><th>ID</th><th>Cine</th><th>Serie</th><th>Estado</th><th>Reportado por</th><th>Fecha</th><th></th></tr></thead><tbody id="tbCinesLista"></tbody></table></div></div>';
+  refreshIncCines();
+}
+function refreshIncCines(){
+  var tb=document.getElementById('tbCinesLista');if(!tb)return;
+  tb.innerHTML=getIncs().map(r => '<tr><td>'+r.id+'</td><td>'+r.cine+'</td><td>'+r.serie+'</td><td>'+estadoBadge(r.estado)+'</td><td>'+r.nombre_usuario+'</td><td>'+formatDate(r.created_at)+'</td><td><button onclick="openModal(\''+r.id+'\')" class="btn-sm">Gestionar</button></td></tr>').join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MODAL / GESTIÓN DE ESTADOS
+// ═══════════════════════════════════════════════════════════════
+function openModal(id){
+  var r = DB.incs.find(x => x.id === id);
+  if(!r) return;
+  editingIncId = id;
+  var canEdit = currentUser.rol === 'mantenimiento' || currentUser.rol === 'admin';
+  var statusOptions = ['Abierta','En proceso','Resuelta'].map(s => '<option '+(r.estado===s?'selected':'')+'>'+s+'</option>').join('');
+  
+  document.getElementById('modalContent').innerHTML=
+    '<div class="detail-row"><span class="detail-key">ID</span><span class="detail-val">'+r.id+'</span></div>'
+    +'<div class="detail-row"><span class="detail-key">Cine</span><span class="detail-val">'+r.cine+'</span></div>'
+    +'<div class="detail-row"><span class="detail-key">Serie</span><span class="detail-val">'+r.serie+'</span></div>'
+    +'<div class="detail-row"><span class="detail-key">Descripción</span><span class="detail-val">'+r.descripcion+'</span></div>'
+    +(r.nota_manto ? '<div class="detail-row"><span class="detail-key">Nota Mtto</span><span class="detail-val">'+r.nota_manto+'</span></div>' : '')
+    +(canEdit ? '<div style="margin-top:20px;padding-top:10px;border-top:1px solid #333;"><select id="modalStatus" style="padding:5px;">'+statusOptions+'</select><input type="text" id="modalNota" placeholder="Nota..." value="'+(r.nota_manto||'')+'" style="margin-left:10px;padding:5px;width:200px;"><button onclick="saveStatus()" class="btn-primary" style="margin-left:10px;padding:5px 15px;">Guardar</button></div>' : '');
+  document.getElementById('modalBg').classList.add('open');
+}
+
+function saveStatus(){
+  var r = DB.incs.find(x => x.id === editingIncId);
+  var estadoAnterior = r.estado;
+  var estadoNuevo = document.getElementById('modalStatus').value;
+  var nota = document.getElementById('modalNota').value;
+  
+  // Guardamos usando la API (Aplica en Supabase)
+  API.updateIncidencia(r.id, { estado: estadoNuevo, nota_manto: nota, updated_at: nowISO() });
+  writeLog(r.id, 'cambio_estado', estadoAnterior, estadoNuevo, nota);
+  
+  updateBadge();
+  closeModal();
+  refreshIncCines();
+  refreshLista();
+}
+
+function closeModal(e){if(e&&e.target!==document.getElementById('modalBg'))return; document.getElementById('modalBg').classList.remove('open');}
+
+// ═══════════════════════════════════════════════════════════════
+//  DASHBOARD & ACTUALIZADOR EXCEL (JSON SNAPSHOT)
+// ═══════════════════════════════════════════════════════════════
+function renderDashboard(container){
+  container.innerHTML='<div class="kgrid">'
+    +'<div class="kcard red"><div class="klabel">Incidencias Abiertas</div><div class="kval">'+(D.kpi.total_incidencias_abiertas||0)+'</div></div>'
+    +'<div class="kcard orange"><div class="klabel">Back Order</div><div class="kval">'+(D.kpi.back_order||0)+'</div></div>'
+    +'<div class="kcard cyan"><div class="klabel">Reporte Cinépolis</div><div class="kval">'+(D.kpi.romel_total||0)+'</div></div>'
+    +'</div><div style="font-size:11px;color:var(--text2);">Datos calculados del último Excel subido: '+(D.fecha_actualizacion||'--')+'</div>';
+}
+
+function renderIncidencias(container){
+  container.innerHTML='<div class="twrap"><div class="tscroll"><table><thead><tr><th>ID Inc</th><th>Serie</th><th>Conjunto</th><th>Días</th></tr></thead><tbody>'
+    +(D.incidencias.length ? D.incidencias.slice(0,100).map(r => '<tr><td>'+r.IdIncidencia+'</td><td>'+r.Serie+'</td><td>'+r.Conjunto+'</td><td>'+r.dias_abierta+'</td></tr>').join('') : '<tr><td colspan="4">Sin datos del Excel.</td></tr>')
+    +'</tbody></table></div></div>';
+}
+
+function renderActualizador(container){
+  container.innerHTML='<div style="max-width:700px;margin:0 auto;">'
+    +'<div style="font-size:22px;font-weight:bold;">⚡ Actualizar Datos del Dashboard</div>'
+    +'<p style="margin-bottom:20px;color:gray;">Sube "Bases_de_datos.xlsx". Esto actualizará las estadísticas para todos los usuarios usando la tabla Snapshot de Supabase.</p>'
+    +'<div class="upd-zone"><input type="file" accept=".xlsx" onchange="processExcel(event)">Haz clic para seleccionar Excel</div>'
+    +'<div id="updResult" style="margin-top:20px;color:var(--green);font-weight:bold;"></div></div>';
+}
+
+function processExcel(e){
+  var file = e.target.files[0]; if(!file) return;
+  document.getElementById('updResult').textContent = "Procesando...";
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      var wb = XLSX.read(ev.target.result, {type:'array', cellDates:true});
+      var inc = XLSX.utils.sheet_to_json(wb.Sheets['BD INCIDENCIA']||wb.Sheets[0], {defval:''});
+      var today = new Date();
+      var incOpen = inc.filter(r => String(r['Status de la Incidencia']||'').trim()==='Abierta').map(r => {
+        var d=0; if(r['Fecha de Creacion']) d=Math.floor((today-new Date(r['Fecha de Creacion']))/86400000);
+        return Object.assign({}, r, {dias_abierta: d});
+      });
+      
+      var newD = {
+        kpi: { total_incidencias_abiertas: incOpen.length, back_order: incOpen.filter(r=>r['Clasificacion Incidencia']==='BACK ORDER').length, romel_total: 0 },
+        incidencias: incOpen.slice(0,500),
+        fecha_actualizacion: today.toLocaleDateString()
+      };
+      
+      // Magia: Lo enviamos a la nube para que todos lo vean
+      API.saveDashboardToCloud(newD, currentUser.nombre).then(() => {
+          document.getElementById('updResult').textContent = "✅ Dashboard subido a la nube correctamente.";
+      });
+      
+    }catch(err){ document.getElementById('updResult').textContent = "Error: " + err.message; }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// Utils
+function updateBadge(){ var nb=document.getElementById('nbTotal'); if(nb) nb.textContent=DB.incs.filter(r=>r.estado!=='Resuelta').length; }
+function estadoBadge(e){ var c={'Abierta':'br','En proceso':'bo','Resuelta':'bg'}[e]||'bw'; return '<span class="badge '+c+'">'+e+'</span>'; }
+function formatDate(iso){ if(!iso)return'—'; return new Date(iso).toLocaleDateString(); }
+
+</script>
+</body>
+</html>
