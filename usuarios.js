@@ -50,34 +50,66 @@ async function renderUsuarios(container) {
   }
 }
 
+/* ══════════════════════════════════════════════
+   MODAL — Gestión de Usuarios (Dinámico)
+══════════════════════════════════════════════ */
 function openUserModal(userId) {
   editingUserId = userId || null;
   const users = window._cachedUsers || [];
   const u = userId ? users.find(x => x.id === userId) : null;
 
+  // 1. Extraer cines únicos leyendo la variable D directamente (¡Corregido!)
+  const cat = (typeof D !== 'undefined' && D.catalogo_maquinas) ? D.catalogo_maquinas : [];
+  const cinesUnicos = cat.length > 0 ? [...new Set(cat.map(m => m.cine))].sort() : [];
+  
+  const cineOptions = cinesUnicos.length > 0 
+    ? cinesUnicos.map(c => `<option value="${c}" ${u && u.nombre===c ? 'selected':''}>${c}</option>`).join('')
+    : '<option value="">⚠️ Sube el archivo Excel primero para ver los cines</option>';
+
+  // 2. Función para alternar entre lista de cines y campo de texto
+  window.toggleUserForm = function() {
+    const rol = document.getElementById('uRol').value;
+    const isCine = (rol === 'cinepolis');
+    document.getElementById('boxNombreCine').style.display = isCine ? 'block' : 'none';
+    document.getElementById('boxNombreTexto').style.display = isCine ? 'none' : 'block';
+  };
+
   document.getElementById('userModalTitle').textContent = u ? 'Editar Usuario' : 'Nuevo Usuario';
   document.getElementById('userModalContent').innerHTML = `
+    
     <div class="form-group" style="margin-bottom:14px;">
-      <label class="form-label">Nombre completo</label>
-      <input class="form-input" id="uNombre" type="text" value="${u ? u.nombre : ''}" placeholder="Nombre del usuario">
+      <label class="form-label">Rol</label>
+      <select class="form-select" id="uRol" onchange="toggleUserForm()" ${u && u.username === 'admin' ? 'disabled' : ''}>
+        <option value="cinepolis"     ${u?.rol==='cinepolis'?'selected':''}>Cinépolis (Conjunto)</option>
+        <option value="mantenimiento" ${u?.rol==='mantenimiento'?'selected':''}>Mantenimiento (Técnico)</option>
+        <option value="admin"         ${u?.rol==='admin'?'selected':''}>Admin</option>
+      </select>
     </div>
+
+    <div class="form-group" id="boxNombreCine" style="margin-bottom:14px;">
+      <label class="form-label">Nombre Exacto del Conjunto *</label>
+      <select class="form-select" id="uNombreCine">
+        <option value="">— Selecciona el Cine de la lista —</option>
+        ${cineOptions}
+      </select>
+    </div>
+
+    <div class="form-group" id="boxNombreTexto" style="margin-bottom:14px; display:none;">
+      <label class="form-label">Nombre del Empleado *</label>
+      <input class="form-input" id="uNombreTexto" type="text" value="${u && u.rol !== 'cinepolis' ? u.nombre : ''}" placeholder="Ej. Juan Pérez">
+    </div>
+
     <div class="form-group" style="margin-bottom:14px;">
       <label class="form-label">Usuario (login)</label>
       <input class="form-input" id="uUser" type="text" value="${u ? u.username : ''}" placeholder="usuario123"
         ${u && u.username === 'admin' ? 'readonly' : ''} autocomplete="off">
     </div>
-    <div class="form-group" style="margin-bottom:14px;">
+
+    <div class="form-group" style="margin-bottom:20px;">
       <label class="form-label">Contraseña ${u ? '(vacío = no cambiar)' : '*'}</label>
       <input class="form-input" id="uPass" type="password" placeholder="••••••••" autocomplete="new-password">
     </div>
-    <div class="form-group" style="margin-bottom:20px;">
-      <label class="form-label">Rol</label>
-      <select class="form-select" id="uRol" ${u && u.username === 'admin' ? 'disabled' : ''}>
-        <option value="cinepolis"     ${u?.rol==='cinepolis'?'selected':''}>Cinépolis</option>
-        <option value="mantenimiento" ${u?.rol==='mantenimiento'?'selected':''}>Mantenimiento</option>
-        <option value="admin"         ${u?.rol==='admin'?'selected':''}>Admin</option>
-      </select>
-    </div>
+
     <div style="display:flex;gap:10px;">
       <button class="btn-primary" id="saveUserBtn" onclick="saveUser()">Guardar</button>
       <button class="btn-ghost" onclick="closeUserModal()">Cancelar</button>
@@ -85,6 +117,7 @@ function openUserModal(userId) {
     <div style="color:var(--red);font-size:12px;margin-top:8px;" id="userFormErr"></div>`;
 
   document.getElementById('modalUserBg').classList.add('open');
+  toggleUserForm(); // Ejecutar al abrir para acomodar las cajas correctamente
 
   // Si estamos editando, necesitamos los datos actuales del usuario para el form
   if (userId) {
@@ -93,10 +126,15 @@ function openUserModal(userId) {
 }
 
 async function saveUser() {
-  const nombre   = document.getElementById('uNombre').value.trim();
+  const rol = document.getElementById('uRol').value;
+  
+  // Dependiendo del rol, tomamos el nombre del Select o del Input
+  const nombre = (rol === 'cinepolis') 
+    ? document.getElementById('uNombreCine').value 
+    : document.getElementById('uNombreTexto').value.trim();
+
   const username = document.getElementById('uUser').value.trim().toLowerCase();
   const pass     = document.getElementById('uPass').value;
-  const rol      = document.getElementById('uRol').value;
   const err      = document.getElementById('userFormErr');
   const btn      = document.getElementById('saveUserBtn');
 
@@ -142,7 +180,6 @@ function closeUserModal(e) {
   document.getElementById('modalUserBg').classList.remove('open');
   editingUserId = null;
 }
-
 /* ── Log de Auditoría ────────────────────────── */
 async function renderLog(container) {
   container.innerHTML = loadingHTML('Cargando log de Supabase...');
