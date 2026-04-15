@@ -109,6 +109,36 @@ async function processExcel(file) {
       const romelP = romel.map(r => ({ ...r, en_nuestro_sistema: !!incSeries[String(r['SERIE VDJ']||'')] }));
       kpi.romel_no_en_sistema = romelP.filter(r=>!r.en_nuestro_sistema).length;
 
+      // ── Construir catálogo de máquinas desde BD MAQUINAS CINEPOLIS ──────
+      // Normalizamos los nombres de columna (el Excel puede tener variantes)
+      const colSerie    = Object.keys(maq[0]||{}).find(k => /serie/i.test(k))      || 'Serie';
+      const colCine     = Object.keys(maq[0]||{}).find(k => /conjunto/i.test(k))   || 'Conjunto';
+      const colNombre   = Object.keys(maq[0]||{}).find(k => /nombre.*maq|maquina/i.test(k)) || 'Nombre de la maquina';
+      const colCateg    = Object.keys(maq[0]||{}).find(k => /categ/i.test(k))      || 'Categoria';
+      const colStatus   = Object.keys(maq[0]||{}).find(k => /status|estado/i.test(k)) || 'STATUS';
+      const colRegion   = Object.keys(maq[0]||{}).find(k => /^region$/i.test(k))   || 'Region';
+      const colRuta     = Object.keys(maq[0]||{}).find(k => /^ruta$/i.test(k))     || 'Ruta';
+
+      const maquinasParaDB = maq
+        .filter(m => String(m[colSerie]||'').trim() !== '')   // Ignorar filas sin serie
+        .map(m => ({
+          id:       String(m[colSerie]  ||'').trim(),
+          cine:     String(m[colCine]   ||'').trim().toUpperCase(),
+          nombre:   String(m[colNombre] ||m[colCateg]||'SIN NOMBRE').trim(),
+          categoria:String(m[colCateg]  ||'').trim(),
+          status:   String(m[colStatus] ||'EN RUTA').trim().toUpperCase(),
+          region:   String(m[colRegion] ||'').trim(),
+          ruta:     String(m[colRuta]   ||'').trim(),
+          updated_at: new Date().toISOString(),
+        }));
+
+      // Para el catálogo en memoria (D) y para el snapshot
+      const catalogoMaquinas = maquinasParaDB.map(m => ({
+        cine:   m.cine,
+        nombre: m.nombre,
+        serie:  m.id,
+      }));
+
       const colsInc = ['IdIncidencia','IdMaquina','Serie','Prioridad','Clasificacion Incidencia','Nombre de Incidencia','Conjunto','Region','Ruta','Operador','Fecha de Creacion','dias_abierta','Observaciones','avg_semanal','TOTAL_VENTA','alerta_venta'];
       const incTable = incMerged.slice(0,500).map(r => {
         const out = {};
@@ -158,21 +188,28 @@ async function processExcel(file) {
       const fecha = ('0'+now.getDate()).slice(-2)+'/'+now.toLocaleString('es-MX',{month:'short'})+'/'+now.getFullYear();
 
       // ── NUEVO: Extraer Catálogo de Máquinas para los combos ──
-      const catalogoMaquinas = maq.map(m => ({
-        cine: String(m['Conjunto'] || '').trim().toUpperCase(),
-        nombre: m['Nombre de la maquina'] || m['Categoria'] || 'SIN NOMBRE',
-        serie: m['Serie'] || m['id'] || 'SIN SERIE'
-      }));
+      // (ya construido arriba en maquinasParaDB y catalogoMaquinas)
 
       const newD = { 
         kpi, incidencias:incTable, venta_alerta:ventaAlerta, romel:romelP,
         by_region:Object.values(byRegion), nombre_count:nombreCountSorted, clasif_count:clasifCount,
         dias_ranges:diasRanges, top_priority:topPriority, semana_cols_last4:last4, 
         fecha_actualizacion:fecha,
-        catalogo_maquinas: catalogoMaquinas // <--- AGREGAMOS EL CATÁLOGO AQUÍ
+        catalogo_maquinas: catalogoMaquinas
       };
 
-      updSetBar(90, 'Guardando en Supabase...');
+      updSetBar(88, `Sincronizando ${maquinasParaDB.length} máquinas en Supabase...`);
+
+      // ── Sincronizar cp_maquinas en Supabase ──────────────────
+      try {
+        await DB.sincronizarMaquinas(maquinasParaDB);
+      } catch(errMaq) {
+        // No abortar si falla esta parte — solo avisar
+        console.warn('[actualizador] cp_maquinas sync error:', errMaq.message);
+        showToast('⚠️ Datos guardados pero falló la sincronización de máquinas: ' + errMaq.message, 'info');
+      }
+
+      updSetBar(94, 'Guardando snapshot en Supabase...');
 
       // ── Guardar en Supabase ──────────────────────
       await DB.guardarDashboard(newD, currentUser.username);
@@ -187,15 +224,15 @@ async function processExcel(file) {
 
       result.className = 'upd-result ok';
       result.style.display = 'block';
-      result.innerHTML = `<strong>✅ Dashboard actualizado y guardado en Supabase</strong><br>
-        <span style="font-size:11px;color:var(--text2);">${fecha} · Todos los usuarios verán los nuevos datos al abrir el Dashboard.</span>
+      result.innerHTML = `<strong>✅ Dashboard y máquinas actualizados en Supabase</strong><br>
+        <span style="font-size:11px;color:var(--text2);">${fecha} · ${maquinasParaDB.length} máquinas sincronizadas · Todos los usuarios verán los nuevos datos.</span>
         <div class="upd-kpi-grid">
           <div class="upd-kpi"><div class="upd-kpi-val">${kpi.total_incidencias_abiertas.toLocaleString()}</div><div class="upd-kpi-lbl">Incidencias</div></div>
           <div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--red);">${kpi.urgentes}</div><div class="upd-kpi-lbl">Urgentes</div></div>
           <div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--orange);">${kpi.back_order}</div><div class="upd-kpi-lbl">Back Order</div></div>
           <div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--purple);">${kpi.mas_90_dias}</div><div class="upd-kpi-lbl">+90 días</div></div>
           <div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--orange);">${kpi.alertas_venta_cero}</div><div class="upd-kpi-lbl">Alerta Venta</div></div>
-          <div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--gold);">${kpi.maquinas_en_ruta.toLocaleString()}</div><div class="upd-kpi-lbl">En Ruta</div></div>
+          <div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--gold);">${maquinasParaDB.length.toLocaleString()}</div><div class="upd-kpi-lbl">Máquinas</div></div>
         </div>`;
 
     } catch(err) { showUpdError('Error: ' + err.message); }
