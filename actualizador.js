@@ -210,5 +210,3 @@ function showUpdError(msg) {
   r.style.display = 'block';
   r.innerHTML = `<strong>❌ Error</strong><br><span style="font-size:12px;">${msg.replace(/\n/g,'<br>')}</span>`;
 }
-
-}
