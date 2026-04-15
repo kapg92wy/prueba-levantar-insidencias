@@ -110,27 +110,39 @@ async function processExcel(file) {
       kpi.romel_no_en_sistema = romelP.filter(r=>!r.en_nuestro_sistema).length;
 
       // ── Construir catálogo de máquinas desde BD MAQUINAS CINEPOLIS ──────
-      // Normalizamos los nombres de columna (el Excel puede tener variantes)
-      const colSerie    = Object.keys(maq[0]||{}).find(k => /serie/i.test(k))      || 'Serie';
-      const colCine     = Object.keys(maq[0]||{}).find(k => /conjunto/i.test(k))   || 'Conjunto';
-      const colNombre   = Object.keys(maq[0]||{}).find(k => /nombre.*maq|maquina/i.test(k)) || 'Nombre de la maquina';
-      const colCateg    = Object.keys(maq[0]||{}).find(k => /categ/i.test(k))      || 'Categoria';
-      const colStatus   = Object.keys(maq[0]||{}).find(k => /status|estado/i.test(k)) || 'STATUS';
-      const colRegion   = Object.keys(maq[0]||{}).find(k => /^region$/i.test(k))   || 'Region';
-      const colRuta     = Object.keys(maq[0]||{}).find(k => /^ruta$/i.test(k))     || 'Ruta';
+      // Columnas confirmadas del Excel real:
+      //   'Nombre'    = nombre de la máquina (SILLON A28, FUTBOLITO CINEPOLIS...)
+      //   'Serie'     = número de serie (03-10892, FUTCPS0001...)
+      //   'Conjunto'  = nombre del cine
+      //   'STATUS'    = EN RUTA, BAJA, etc.
+      //   'Region'    = región
+      //   'Ruta'      = ruta
+      //   'Categoria' = categoría corta (RX, KD, ST...)
+      const colsDisponibles = Object.keys(maq[0] || {});
+
+      const colSerie  = colsDisponibles.includes('Serie')     ? 'Serie'     : colsDisponibles.find(k => /^serie$/i.test(k))   || 'Serie';
+      const colCine   = colsDisponibles.includes('Conjunto')  ? 'Conjunto'  : colsDisponibles.find(k => /conjunto/i.test(k))  || 'Conjunto';
+      const colNombre = colsDisponibles.includes('Nombre')    ? 'Nombre'    : colsDisponibles.find(k => /^nombre$/i.test(k))  || 'Nombre';
+      const colCateg  = colsDisponibles.includes('Categoria') ? 'Categoria' : colsDisponibles.find(k => /categ/i.test(k))     || 'Categoria';
+      const colStatus = colsDisponibles.includes('STATUS')    ? 'STATUS'    : colsDisponibles.find(k => /status/i.test(k))    || 'STATUS';
+      const colRegion = colsDisponibles.includes('Region')    ? 'Region'    : colsDisponibles.find(k => /^regi/i.test(k))     || 'Region';
+      const colRuta   = colsDisponibles.includes('Ruta')      ? 'Ruta'      : colsDisponibles.find(k => /^ruta$/i.test(k))    || 'Ruta';
 
       const maquinasParaDB = maq
-        .filter(m => String(m[colSerie]||'').trim() !== '')   // Ignorar filas sin serie
-        .map(m => ({
-          id:       String(m[colSerie]  ||'').trim(),
-          cine:     String(m[colCine]   ||'').trim().toUpperCase(),
-          nombre:   String(m[colNombre] ||m[colCateg]||'SIN NOMBRE').trim(),
-          categoria:String(m[colCateg]  ||'').trim(),
-          status:   String(m[colStatus] ||'EN RUTA').trim().toUpperCase(),
-          region:   String(m[colRegion] ||'').trim(),
-          ruta:     String(m[colRuta]   ||'').trim(),
-          updated_at: new Date().toISOString(),
-        }));
+        .filter(m => String(m[colSerie]||'').trim() !== '')
+        .map(m => {
+          const nombreMaq = String(m[colNombre] || '').trim() || String(m[colCateg] || '').trim() || 'SIN NOMBRE';
+          return {
+            id:        String(m[colSerie]  ||'').trim(),
+            cine:      String(m[colCine]   ||'').trim().toUpperCase(),
+            nombre:    nombreMaq,
+            categoria: String(m[colCateg]  ||'').trim(),
+            status:    String(m[colStatus] ||'EN RUTA').trim().toUpperCase(),
+            region:    String(m[colRegion] ||'').trim(),
+            ruta:      String(m[colRuta]   ||'').trim(),
+            updated_at: new Date().toISOString(),
+          };
+        });
 
       // Para el catálogo en memoria (D) y para el snapshot
       const catalogoMaquinas = maquinasParaDB.map(m => ({
