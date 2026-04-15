@@ -213,12 +213,27 @@ async function processExcel(file) {
       updSetBar(88, `Sincronizando ${maquinasParaDB.length} máquinas en Supabase...`);
 
       // ── Sincronizar cp_maquinas en Supabase ──────────────────
+      let maqSincronizadas = 0;
+      let maqError = '';
       try {
-        await DB.sincronizarMaquinas(maquinasParaDB);
+        const res = await DB.sincronizarMaquinas(maquinasParaDB);
+        maqSincronizadas = res.ok;
       } catch(errMaq) {
-        // No abortar si falla esta parte — solo avisar
-        console.warn('[actualizador] cp_maquinas sync error:', errMaq.message);
-        showToast('⚠️ Datos guardados pero falló la sincronización de máquinas: ' + errMaq.message, 'info');
+        maqError = errMaq.message;
+        console.error('[actualizador] cp_maquinas sync error:', errMaq.message);
+        // Mostrar error visible en pantalla (no solo toast)
+        document.getElementById('updResult').className = 'upd-result err';
+        document.getElementById('updResult').style.display = 'block';
+        document.getElementById('updResult').innerHTML =
+          `<strong>❌ Error al sincronizar máquinas en Supabase</strong><br>
+           <span style="font-size:12px;">${errMaq.message}</span><br><br>
+           <strong style="color:var(--text);">Posibles causas:</strong><br>
+           <span style="font-size:11px;color:var(--text2);">
+           1. Row Level Security (RLS) activo en cp_maquinas sin política de INSERT/UPDATE<br>
+           2. Ve a Supabase → Authentication → Policies → cp_maquinas → desactiva RLS o agrega política<br>
+           3. O corre en SQL Editor: <code>ALTER TABLE cp_maquinas DISABLE ROW LEVEL SECURITY;</code>
+           </span>`;
+        // No abortar — continuar guardando el snapshot del dashboard
       }
 
       updSetBar(94, 'Guardando snapshot en Supabase...');
@@ -236,15 +251,16 @@ async function processExcel(file) {
 
       result.className = 'upd-result ok';
       result.style.display = 'block';
-      result.innerHTML = `<strong>✅ Dashboard y máquinas actualizados en Supabase</strong><br>
-        <span style="font-size:11px;color:var(--text2);">${fecha} · ${maquinasParaDB.length} máquinas sincronizadas · Todos los usuarios verán los nuevos datos.</span>
+      result.innerHTML = `<strong>✅ Dashboard actualizado en Supabase</strong>
+        ${maqError ? `<br><span style="color:var(--orange);font-size:11px;">⚠️ Máquinas: error parcial — revisa la consola</span>` : ''}
+        <br><span style="font-size:11px;color:var(--text2);">${fecha} · ${maqSincronizadas} de ${maquinasParaDB.length} máquinas sincronizadas · Todos los usuarios verán los nuevos datos.</span>
         <div class="upd-kpi-grid">
           <div class="upd-kpi"><div class="upd-kpi-val">${kpi.total_incidencias_abiertas.toLocaleString()}</div><div class="upd-kpi-lbl">Incidencias</div></div>
           <div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--red);">${kpi.urgentes}</div><div class="upd-kpi-lbl">Urgentes</div></div>
           <div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--orange);">${kpi.back_order}</div><div class="upd-kpi-lbl">Back Order</div></div>
           <div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--purple);">${kpi.mas_90_dias}</div><div class="upd-kpi-lbl">+90 días</div></div>
           <div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--orange);">${kpi.alertas_venta_cero}</div><div class="upd-kpi-lbl">Alerta Venta</div></div>
-          <div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--gold);">${maquinasParaDB.length.toLocaleString()}</div><div class="upd-kpi-lbl">Máquinas</div></div>
+          <div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--gold);">${maqSincronizadas.toLocaleString()}</div><div class="upd-kpi-lbl">Máquinas</div></div>
         </div>`;
 
     } catch(err) { showUpdError('Error: ' + err.message); }
