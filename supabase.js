@@ -198,20 +198,30 @@ const DB = {
     return unicos;
   },
 
-  // Reemplazar TODAS las máquinas con los datos del Excel (upsert masivo)
+  // Sincronizar máquinas: upsert masivo (insert o update si ya existe por 'id')
   async sincronizarMaquinas(maquinas) {
-    if (!maquinas || !maquinas.length) return;
+    if (!maquinas || !maquinas.length) return { ok: 0, errores: [] };
 
-    // Borramos todo y reinsertamos — más simple y seguro para sincronizar
-    const { error: delErr } = await sb.from('cp_maquinas').delete().neq('id', '___never___');
-    if (delErr) throw new Error(`[sincronizarMaquinas:delete] ${delErr.message}`);
+    const BATCH   = 200;   // lotes más pequeños = más estable
+    const errores = [];
+    let   ok      = 0;
 
-    // Insertar en lotes de 500 para no exceder límites
-    const BATCH = 500;
     for (let i = 0; i < maquinas.length; i += BATCH) {
       const lote = maquinas.slice(i, i + BATCH);
-      const { error } = await sb.from('cp_maquinas').insert(lote);
-      if (error) throw new Error(`[sincronizarMaquinas:insert] ${error.message}`);
+      const { error } = await sb
+        .from('cp_maquinas')
+        .upsert(lote, { onConflict: 'id' });   // insert o update por PK
+
+      if (error) {
+        errores.push(`Lote ${Math.floor(i/BATCH)+1}: ${error.message}`);
+      } else {
+        ok += lote.length;
+      }
     }
+
+    if (errores.length) {
+      throw new Error(`sincronizarMaquinas: ${errores.join(' | ')}`);
+    }
+    return { ok };
   },
 };
