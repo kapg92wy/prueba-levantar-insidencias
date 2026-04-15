@@ -61,19 +61,49 @@ async function renderInicio(container) {
 ══════════════════════════════════════════════ */
 function renderNueva(container) {
   photoBase64 = '';
+  
+  // 1. Filtrar las máquinas del catálogo para ESTE cine en particular
+  const nombreCineActual = currentUser.nombre.toUpperCase();
+  const maqCine = (D.catalogo_maquinas || []).filter(m => m.cine === nombreCineActual);
+  
+  // 2. Extraer nombres de máquinas sin repetir
+  const nombresUnicos = [...new Set(maqCine.map(m => m.nombre))].sort();
+
+  // 3. Función para llenar las series cuando eligen una máquina
+  window.actualizarSeries = function() {
+    const selNombre = document.getElementById('fNombreMaquina').value;
+    const series = maqCine.filter(m => m.nombre === selNombre).map(m => m.serie);
+    
+    const comboSerie = document.getElementById('fSerie');
+    if (series.length === 0) {
+        comboSerie.innerHTML = '<option value="">No hay series disponibles</option>';
+    } else {
+        comboSerie.innerHTML = '<option value="">— Selecciona la Serie —</option>' + 
+                               series.map(s => `<option value="${s}">${s}</option>`).join('');
+    }
+  };
+
   container.innerHTML = `
     <div class="form-card">
       <div class="form-title">Reportar Nueva Incidencia</div>
-      <div class="form-sub">Completa todos los campos obligatorios (*)</div>
+      <div class="form-sub" style="color:var(--gold);">Cine: <strong>${currentUser.nombre}</strong> · Completa los campos obligatorios (*)</div>
       <div class="form-grid">
+        
         <div class="form-group">
-          <label class="form-label">Cine / Conjunto *</label>
-          <input class="form-input" id="fCine" type="text" placeholder="Ej. CINÉPOLIS PLAZA ARAGÓN">
+          <label class="form-label">Máquina Afectada *</label>
+          <select class="form-select" id="fNombreMaquina" onchange="actualizarSeries()">
+            <option value="">— Selecciona Máquina —</option>
+            ${nombresUnicos.map(n => `<option value="${n}">${n}</option>`).join('')}
+          </select>
         </div>
+        
         <div class="form-group">
           <label class="form-label">Número de Serie *</label>
-          <input class="form-input" id="fSerie" type="text" placeholder="Ej. SIM-17422">
+          <select class="form-select" id="fSerie">
+            <option value="">Primero selecciona una máquina...</option>
+          </select>
         </div>
+        
         <div class="form-group">
           <label class="form-label">Tipo de Falla *</label>
           <select class="form-select" id="fTipo">
@@ -87,6 +117,7 @@ function renderNueva(container) {
             <option>OTRO</option>
           </select>
         </div>
+        
         <div class="form-group">
           <label class="form-label">Prioridad *</label>
           <select class="form-select" id="fPrioridad">
@@ -94,10 +125,12 @@ function renderNueva(container) {
             <option value="Urgente">🔴 Urgente</option>
           </select>
         </div>
+        
         <div class="form-group full">
           <label class="form-label">Descripción del Problema *</label>
           <textarea class="form-textarea" id="fDesc" placeholder="Describe detalladamente qué está pasando..."></textarea>
         </div>
+        
         <div class="form-group full">
           <label class="form-label">Foto (opcional)</label>
           <div class="photo-zone">
@@ -106,9 +139,10 @@ function renderNueva(container) {
             <img id="photoPreview" class="photo-preview" style="display:none;">
           </div>
         </div>
+        
       </div>
       <button class="submit-btn" id="submitBtn" onclick="submitInc()">✔ REGISTRAR INCIDENCIA</button>
-      <div class="success-msg" id="successMsg">✅ Incidencia registrada. Mantenimiento fue notificado.</div>
+      <div class="success-msg" id="successMsg" style="display:none; color:var(--green); font-weight:bold; margin-top:10px;">✅ Incidencia registrada. Mantenimiento fue notificado.</div>
     </div>`;
 }
 
@@ -125,13 +159,13 @@ function previewPhoto(e) {
 }
 
 async function submitInc() {
-  const cine      = document.getElementById('fCine').value.trim();
-  const serie     = document.getElementById('fSerie').value.trim();
+  const maquina   = document.getElementById('fNombreMaquina').value;
+  const serie     = document.getElementById('fSerie').value;
   const tipo      = document.getElementById('fTipo').value;
   const prioridad = document.getElementById('fPrioridad').value;
   const desc      = document.getElementById('fDesc').value.trim();
 
-  if (!cine || !serie || !tipo || !desc) {
+  if (!maquina || !serie || !tipo || !desc) {
     showToast('Completa todos los campos obligatorios (*)', 'error');
     return;
   }
@@ -143,7 +177,11 @@ async function submitInc() {
     const ts  = nowISO();
     const inc = {
       id: newId('INC'),
-      cine, serie, tipo, prioridad,
+      cine: currentUser.nombre, // Se auto-asigna
+      serie: serie,
+      tipo: maquina,            // Guardamos el nombre de la máquina aquí
+      clasificacion_falla: tipo, // Guardamos el tipo de falla (fuera de servicio, etc)
+      prioridad: prioridad,
       descripcion: desc,
       foto_url: photoBase64,
       estado: 'Abierta',
@@ -167,10 +205,12 @@ async function submitInc() {
       created_at: ts,
     });
 
-    // limpiar form
-    ['fCine','fSerie','fDesc'].forEach(id => document.getElementById(id).value = '');
+    // Limpiar form
+    document.getElementById('fNombreMaquina').value = '';
+    document.getElementById('fSerie').innerHTML = '<option value="">Primero selecciona una máquina...</option>';
     document.getElementById('fTipo').value = '';
     document.getElementById('fPrioridad').value = 'Normal';
+    document.getElementById('fDesc').value = '';
     document.getElementById('photoPreview').style.display = 'none';
     document.getElementById('photoPlaceholder').style.display = 'block';
     if (document.getElementById('fFoto')) document.getElementById('fFoto').value = '';
@@ -360,38 +400,80 @@ async function openModal(id) {
   try {
     const r = await DB.getIncidencia(id);
     if (!r) { closeModal(); return; }
+    
     // Seguridad: cine solo ve las suyas
     if (currentUser.rol === 'cinepolis' && r.usuario_id !== currentUser.id) { closeModal(); return; }
 
-    const canEdit   = ['mantenimiento','admin'].includes(currentUser.rol);
+    // Traer el historial de esta incidencia
+    const allLogs = await DB.getLog();
+    const logs = allLogs.filter(l => l.incidencia_id === id);
+    const logsHtml = logs.length ? logs.map(l => `
+      <div style="font-size:11px; padding:8px; border-left:2px solid var(--gold); margin-bottom:6px; background:var(--bg3); border-radius:0 6px 6px 0;">
+        <span style="color:var(--text2); display:block; margin-bottom:2px;">${formatDate(l.created_at)}</span>
+        <span style="color:var(--cyan); font-weight:600;">${l.nombre_usuario}</span> cambió a <b style="color:var(--text);">${l.estado_nuevo}</b>
+        ${l.nota ? `<div style="color:var(--text3); margin-top:4px; font-style:italic;">"${l.nota}"</div>` : ''}
+      </div>
+    `).join('') : '<div style="color:var(--text3); font-size:11px;">Sin historial de cambios.</div>';
+
+    const canEditManto = ['mantenimiento','admin'].includes(currentUser.rol) && r.estado !== 'Cerrada';
+    const canConfirmCine = currentUser.rol === 'cinepolis' && r.estado === 'Resuelta';
     const canDelete = currentUser.rol === 'admin';
     const nota      = r.nota_manto || '';
     const fotoUrl   = r.foto_url   || '';
+    const fotoCierre = r.foto_url_cierre || '';
+    
     const statusOpts = ['Abierta','En proceso','Resuelta']
-      .map(s => `<option ${r.estado===s?'selected':''}>${s}</option>`).join('');
+      .map(s => `<option value="${s}" ${r.estado===s?'selected':''}>${s}</option>`).join('');
 
     document.getElementById('modalContent').innerHTML = `
       <div class="detail-row"><span class="detail-key">ID</span><span class="detail-val" style="font-family:var(--ff);color:var(--gold);font-weight:700;">${r.id}</span></div>
       <div class="detail-row"><span class="detail-key">Cine</span><span class="detail-val">${r.cine}</span></div>
-      <div class="detail-row"><span class="detail-key">Serie</span><span class="detail-val" style="color:var(--cyan);">${r.serie}</span></div>
-      <div class="detail-row"><span class="detail-key">Tipo de Falla</span><span class="detail-val">${r.tipo}</span></div>
+      
+      <div class="detail-row"><span class="detail-key">Máquina</span><span class="detail-val" style="color:var(--cyan);">${r.tipo || 'N/A'} (Serie: ${r.serie})</span></div>
+      <div class="detail-row"><span class="detail-key">Tipo de Falla</span><span class="detail-val">${r.clasificacion_falla || 'N/A'}</span></div>
+      
       <div class="detail-row"><span class="detail-key">Prioridad</span><span class="detail-val">${prioBadge(r.prioridad)}</span></div>
       <div class="detail-row"><span class="detail-key">Estado Actual</span><span class="detail-val">${estadoBadge(r.estado)}</span></div>
       <div class="detail-row"><span class="detail-key">Reportado por</span><span class="detail-val" style="color:var(--cyan);">${r.nombre_usuario || r.usuario_id}</span></div>
-      <div class="detail-row"><span class="detail-key">Fecha</span><span class="detail-val">${formatDate(r.created_at)}</span></div>
+      <div class="detail-row"><span class="detail-key">Fecha de Reporte</span><span class="detail-val">${formatDate(r.created_at)}</span></div>
       <div class="detail-row" style="flex-direction:column;gap:6px;"><span class="detail-key">Descripción</span><span class="detail-val" style="color:var(--text2);line-height:1.6;">${r.descripcion}</span></div>
-      ${fotoUrl ? `<img src="${fotoUrl}" class="modal-photo" style="margin-top:12px;">` : ''}
-      ${nota ? `<div class="detail-row" style="margin-top:14px;flex-direction:column;gap:4px;"><span class="detail-key" style="color:var(--gold);">Nota de Mantenimiento</span><span class="detail-val" style="color:var(--text2);line-height:1.6;">${nota}</span></div>` : ''}
-      ${canEdit ? `
-        <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px;">
-          <div class="detail-key" style="margin-bottom:8px;color:var(--gold);">Actualizar Estado</div>
-          <select class="status-select" id="modalStatus">${statusOpts}</select>
-          <textarea class="nota-input" id="modalNota" placeholder="Nota de mantenimiento...">${nota}</textarea>
-          <div style="display:flex;gap:10px;margin-top:10px;align-items:center;">
+      
+      ${fotoUrl ? `<div class="detail-row" style="margin-top:10px;"><span class="detail-key" style="color:var(--text2);">Evidencia Inicial</span><img src="${fotoUrl}" class="modal-photo" style="margin-top:4px;"></div>` : ''}
+      ${fotoCierre ? `<div class="detail-row" style="margin-top:10px;flex-direction:column;gap:4px;"><span class="detail-key" style="color:var(--green);">Evidencia de Solución</span><a href="${fotoCierre}" target="_blank" style="color:var(--cyan);text-decoration:none;font-weight:bold;">📸 Ver foto de Mantenimiento</a></div>` : ''}
+      
+      <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
+        <div class="detail-key" style="margin-bottom:10px;color:var(--text2);">Historial de Seguimiento</div>
+        <div style="max-height:150px; overflow-y:auto; padding-right:5px;">${logsHtml}</div>
+      </div>
+
+      ${canEditManto ? `
+        <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px;background:var(--bg2);padding:15px;border-radius:8px;">
+          <div class="detail-key" style="margin-bottom:8px;color:var(--gold);">Actualizar Estado Operativo</div>
+          <select class="status-select" id="modalStatus" onchange="document.getElementById('cajaFoto').style.display = this.value==='Resuelta' ? 'block' : 'none'">
+            ${statusOpts}
+          </select>
+          
+          <div id="cajaFoto" style="display:${r.estado==='Resuelta'?'block':'none'}; margin-top:12px;">
+            <label class="form-label" style="color:var(--gold);">📸 Subir Evidencia (Requerida para Resuelta)</label>
+            <input type="file" id="mFoto" accept="image/*" class="form-input" style="font-size:11px; padding:6px;">
+          </div>
+
+          <textarea class="nota-input" id="modalNota" placeholder="Nota de servicio o reparación..." style="margin-top:12px;">${nota}</textarea>
+          <div style="display:flex;gap:10px;margin-top:12px;align-items:center;">
             <button class="save-status-btn" id="saveStatusBtn" onclick="saveStatus()">Guardar Cambios</button>
             ${canDelete ? `<button onclick="deleteInc('${r.id}','${r.estado}')" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);color:var(--red);padding:9px 16px;border-radius:6px;font-size:12px;cursor:pointer;">🗑 Eliminar</button>` : ''}
           </div>
-        </div>` : ''}`;
+        </div>` : ''}
+        
+      ${canConfirmCine ? `
+        <div style="margin-top:20px; border:1px solid var(--green); border-radius:8px; padding:15px; text-align:center; background:rgba(34,197,94,0.05);">
+          <div style="font-size:12px; margin-bottom:12px; color:var(--text);">Mantenimiento ha reportado este equipo como <b>Resuelto</b>. Por favor, verifica el equipo.</div>
+          <button onclick="confirmarCierre()" class="btn-primary" style="background:var(--green); width:100%; font-size:14px; padding:12px;">✅ Confirmar que funciona correctamente</button>
+        </div>
+      ` : ''}
+      
+      ${r.estado === 'Cerrada' ? `<div style="margin-top:20px; color:var(--green); text-align:center; padding:15px; border:1px dashed var(--green); border-radius:8px; font-weight:bold;">✅ Ticket Cerrado y Confirmado</div>` : ''}
+      `;
 
   } catch(err) {
     document.getElementById('modalContent').innerHTML = errorBox('Error al cargar: ' + err.message);
@@ -402,21 +484,76 @@ async function saveStatus() {
   const btn = document.getElementById('saveStatusBtn');
   const estadoNuevo = document.getElementById('modalStatus').value;
   const nota        = document.getElementById('modalNota').value.trim();
-  btn.disabled = true; btn.textContent = 'Guardando...';
+  const fileInput   = document.getElementById('mFoto');
+  
+  btn.disabled = true; btn.textContent = 'Verificando...';
+  
   try {
     const r = await DB.getIncidencia(editingIncId);
-    await DB.actualizarIncidencia(editingIncId, { estado: estadoNuevo, nota_manto: nota });
+    let urlCierre = r.foto_url_cierre || '';
+
+    // Regla de Negocio: No puede marcar "Resuelta" sin foto
+    if (estadoNuevo === 'Resuelta' && !urlCierre && (!fileInput || !fileInput.files[0])) {
+      showToast('⚠️ Debes subir una foto de evidencia para resolver la incidencia.', 'error');
+      btn.disabled = false; btn.textContent = 'Guardar Cambios';
+      return;
+    }
+
+    // Subir nueva foto si la seleccionó
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+      btn.textContent = 'Subiendo foto al servidor...';
+      urlCierre = await DB.subirFotoResolucion(fileInput.files[0]);
+    }
+
+    btn.textContent = 'Guardando...';
+    await DB.actualizarIncidencia(editingIncId, { 
+      estado: estadoNuevo, 
+      nota_manto: nota,
+      foto_url_cierre: urlCierre 
+    });
+    
     await DB.escribirLog({ id: newId('log'), incidencia_id: editingIncId,
       usuario_id: currentUser.id, nombre_usuario: currentUser.nombre,
       accion: 'cambio_estado', estado_anterior: r.estado, estado_nuevo: estadoNuevo,
       nota, created_at: nowISO() });
+      
     showToast('Incidencia actualizada', 'success');
-    _todasIncs = _todasIncs.map(x => x.id === editingIncId ? {...x, estado: estadoNuevo, nota_manto: nota} : x);
-    filtrarCines();
+    
+    // Actualizar caché y vistas
+    _todasIncs = _todasIncs.map(x => x.id === editingIncId ? {...x, estado: estadoNuevo, nota_manto: nota, foto_url_cierre: urlCierre} : x);
+    if(typeof filtrarCines === 'function') filtrarCines();
     closeModal();
     updateBadge();
-  } catch(err) { showToast('Error: ' + err.message, 'error'); }
-  finally { btn.disabled = false; btn.textContent = 'Guardar Cambios'; }
+  } catch(err) { 
+    showToast('Error: ' + err.message, 'error'); 
+    btn.disabled = false; btn.textContent = 'Guardar Cambios';
+  }
+}
+
+// Nueva función exclusiva para el usuario del Cine
+async function confirmarCierre() {
+  if(!confirm('¿Estás seguro de que la máquina funciona correctamente? Al aceptar, el ticket se cerrará permanentemente.')) return;
+  try {
+    const r = await DB.getIncidencia(editingIncId);
+    await DB.actualizarIncidencia(editingIncId, { estado: 'Cerrada' });
+    
+    await DB.escribirLog({ id: newId('log'), incidencia_id: editingIncId,
+      usuario_id: currentUser.id, nombre_usuario: currentUser.nombre,
+      accion: 'cambio_estado', estado_anterior: r.estado, estado_nuevo: 'Cerrada',
+      nota: 'El Cine validó la reparación y cerró el ticket.', created_at: nowISO() });
+
+    showToast('Ticket cerrado exitosamente ✓', 'success');
+    _todasIncs = _todasIncs.map(x => x.id === editingIncId ? {...x, estado: 'Cerrada'} : x);
+    
+    // Refrescar vistas locales dependiendo del archivo donde estés
+    if(typeof filtrarCines === 'function') filtrarCines();
+    else if (typeof refreshLista === 'function') refreshLista();
+    
+    closeModal();
+    updateBadge();
+  } catch(err) {
+    showToast('Error: ' + err.message, 'error');
+  }
 }
 
 async function deleteInc(id, estado) {
@@ -430,7 +567,9 @@ async function deleteInc(id, estado) {
       nota: 'Eliminada por admin', created_at: nowISO() });
     showToast('Incidencia eliminada', 'success');
     _todasIncs = _todasIncs.filter(x => x.id !== id);
-    closeModal(); filtrarCines(); updateBadge();
+    closeModal(); 
+    if(typeof filtrarCines === 'function') filtrarCines();
+    updateBadge();
   } catch(err) { showToast('Error: ' + err.message, 'error'); }
 }
 
