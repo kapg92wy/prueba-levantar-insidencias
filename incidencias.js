@@ -59,27 +59,36 @@ async function renderInicio(container) {
 /* ══════════════════════════════════════════════
    CINE — Reportar Incidencia
 ══════════════════════════════════════════════ */
-function renderNueva(container) {
+async function renderNueva(container) {
   photoBase64 = '';
-  
-  // 1. Filtrar las máquinas del catálogo para ESTE cine en particular
-  const nombreCineActual = currentUser.nombre.toUpperCase();
-  const maqCine = (D.catalogo_maquinas || []).filter(m => m.cine === nombreCineActual);
-  
-  // 2. Extraer nombres de máquinas sin repetir
-  const nombresUnicos = [...new Set(maqCine.map(m => m.nombre))].sort();
+  container.innerHTML = loadingHTML('Cargando máquinas de tu cine...');
 
-  // 3. Función para llenar las series cuando eligen una máquina
+  // Cargar máquinas de este cine desde Supabase (tabla cp_maquinas)
+  let maqCine = [];
+  try {
+    const nombreCineActual = currentUser.nombre.toUpperCase();
+    maqCine = await DB.getMaquinas(nombreCineActual);
+  } catch(e) {
+    // Si falla Supabase, intentar con el catálogo en memoria del snapshot
+    console.warn('[renderNueva] Falló getMaquinas, usando caché D:', e.message);
+    const nombreCineActual = currentUser.nombre.toUpperCase();
+    maqCine = (D.catalogo_maquinas || [])
+      .filter(m => m.cine === nombreCineActual)
+      .map(m => ({ nombre: m.nombre, id: m.serie }));
+  }
+
+  const nombresUnicos = [...new Set(maqCine.map(m => m.nombre))].sort();
+  
+  // Función para llenar series cuando eligen máquina
   window.actualizarSeries = function() {
     const selNombre = document.getElementById('fNombreMaquina').value;
-    const series = maqCine.filter(m => m.nombre === selNombre).map(m => m.serie);
-    
+    const series = maqCine.filter(m => m.nombre === selNombre).map(m => m.id);
     const comboSerie = document.getElementById('fSerie');
-    if (series.length === 0) {
-        comboSerie.innerHTML = '<option value="">No hay series disponibles</option>';
+    if (!series.length) {
+      comboSerie.innerHTML = '<option value="">No hay series disponibles</option>';
     } else {
-        comboSerie.innerHTML = '<option value="">— Selecciona la Serie —</option>' + 
-                               series.map(s => `<option value="${s}">${s}</option>`).join('');
+      comboSerie.innerHTML = '<option value="">— Selecciona la Serie —</option>'
+        + series.map(s => `<option value="${s}">${s}</option>`).join('');
     }
   };
 
@@ -175,15 +184,25 @@ async function submitInc() {
 
   try {
     const ts  = nowISO();
+
+    // Subir foto al Storage si existe (en vez de guardar base64)
+    let fotoFinalUrl = '';
+    const fileInput = document.getElementById('fFoto');
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+      btn.textContent = 'Subiendo foto...';
+      fotoFinalUrl = await DB.subirFoto(fileInput.files[0], 'reportes');
+    }
+
+    btn.textContent = 'Registrando incidencia...';
     const inc = {
       id: newId('INC'),
-      cine: currentUser.nombre, // Se auto-asigna
+      cine: currentUser.nombre,
       serie: serie,
-      tipo: maquina,            // Guardamos el nombre de la máquina aquí
-      clasificacion_falla: tipo, // Guardamos el tipo de falla (fuera de servicio, etc)
+      tipo: maquina,
+      clasificacion_falla: tipo,
       prioridad: prioridad,
       descripcion: desc,
-      foto_url: photoBase64,
+      foto_url: fotoFinalUrl,
       estado: 'Abierta',
       usuario_id: currentUser.id,
       nombre_usuario: currentUser.nombre,
@@ -213,7 +232,7 @@ async function submitInc() {
     document.getElementById('fDesc').value = '';
     document.getElementById('photoPreview').style.display = 'none';
     document.getElementById('photoPlaceholder').style.display = 'block';
-    if (document.getElementById('fFoto')) document.getElementById('fFoto').value = '';
+    if (fileInput) fileInput.value = '';
     photoBase64 = '';
 
     const msg = document.getElementById('successMsg');
