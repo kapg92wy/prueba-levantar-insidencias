@@ -145,4 +145,20 @@ const DB = {
   },
 
   desuscribir(ch) { if (ch) sb.removeChannel(ch); },
+
+  /* ─────────────────────────────────────────────
+     STORAGE (FOTOS)
+  ───────────────────────────────────────────── */
+  async subirFotoResolucion(file) {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `resolucion_${Date.now()}.${fileExt}`;
+    
+    // Sube el archivo al bucket "fotos_incidencias"
+    const { error } = await sb.storage.from('fotos_incidencias').upload(fileName, file);
+    if (error) throw new Error(`Error al subir foto: ${error.message}`);
+    
+    // Obtiene el link público de la foto
+    const { data } = sb.storage.from('fotos_incidencias').getPublicUrl(fileName);
+    return data.publicUrl;
+  }
 };
