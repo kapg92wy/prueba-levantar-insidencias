@@ -157,9 +157,20 @@ async function processExcel(file) {
       const now  = new Date();
       const fecha = ('0'+now.getDate()).slice(-2)+'/'+now.toLocaleString('es-MX',{month:'short'})+'/'+now.getFullYear();
 
-      const newD = { kpi, incidencias:incTable, venta_alerta:ventaAlerta, romel:romelP,
+      // ── NUEVO: Extraer Catálogo de Máquinas para los combos ──
+      const catalogoMaquinas = maq.map(m => ({
+        cine: String(m['Conjunto'] || '').trim().toUpperCase(),
+        nombre: m['Nombre de la maquina'] || m['Categoria'] || 'SIN NOMBRE',
+        serie: m['Serie'] || m['id'] || 'SIN SERIE'
+      }));
+
+      const newD = { 
+        kpi, incidencias:incTable, venta_alerta:ventaAlerta, romel:romelP,
         by_region:Object.values(byRegion), nombre_count:nombreCountSorted, clasif_count:clasifCount,
-        dias_ranges:diasRanges, top_priority:topPriority, semana_cols_last4:last4, fecha_actualizacion:fecha };
+        dias_ranges:diasRanges, top_priority:topPriority, semana_cols_last4:last4, 
+        fecha_actualizacion:fecha,
+        catalogo_maquinas: catalogoMaquinas // <--- AGREGAMOS EL CATÁLOGO AQUÍ
+      };
 
       updSetBar(90, 'Guardando en Supabase...');
 
@@ -198,4 +209,6 @@ function showUpdError(msg) {
   r.className = 'upd-result err';
   r.style.display = 'block';
   r.innerHTML = `<strong>❌ Error</strong><br><span style="font-size:12px;">${msg.replace(/\n/g,'<br>')}</span>`;
+}
+
 }
