@@ -11,19 +11,18 @@ async function initApp() {
   document.getElementById('app').style.display = 'block';
 
   // Header según rol
-  const rolMap   = { cinepolis:'cine', mantenimiento:'mant', admin:'admin' };
-  const rolLabel = { cinepolis:'CINÉPOLIS', mantenimiento:'MANTENIMIENTO', admin:'ADMINISTRADOR' };
+  const rolMap   = { cinepolis:'cine', mantenimiento:'mant', admin:'admin', ejecutivo:'exec' };
+  const rolLabel = { cinepolis:'CINÉPOLIS', mantenimiento:'MANTENIMIENTO', admin:'ADMINISTRADOR', ejecutivo:'EJECUTIVO' };
   const badge = document.getElementById('roleBadge');
   badge.textContent = rolLabel[currentUser.rol] || currentUser.rol.toUpperCase();
   badge.className   = 'hbadge ' + (rolMap[currentUser.rol] || 'bw');
   document.getElementById('userLabel').textContent = currentUser.nombre;
 
-  if (currentUser.rol === 'admin' || currentUser.rol === 'mantenimiento') {
+  if (['admin','mantenimiento','ejecutivo'].includes(currentUser.rol)) {
     document.getElementById('liveBadge').style.display = 'flex';
     document.getElementById('fechaBadge').style.display = 'block';
     document.getElementById('headerTitle').textContent = 'DASHBOARD OPERATIVO';
     document.getElementById('headerSub').textContent   = 'Cinépolis · Gestión de Máquinas y Servicios';
-    // Cargar snapshot del dashboard desde Supabase
     await cargarDashboardSnapshot();
     const fb = document.getElementById('fechaBadge');
     if (fb) fb.textContent = D.fecha_actualizacion || '—';
@@ -39,7 +38,7 @@ async function initApp() {
       : 'dashboard';
   renderTab(firstTab);
 
-  // Activar Realtime (mantenimiento y admin ven cambios en tiempo real)
+  // Realtime para todos excepto cines
   if (currentUser.rol !== 'cinepolis') {
     window._rtChannel = DB.suscribirIncidencias((payload) => {
       // Actualizar badge automáticamente cuando hay cambios
@@ -74,6 +73,16 @@ function buildNav() {
     tabs = [
       { id:'incidencias_cines',    label:'📩 Incidencias Reportadas', badge:true },
       { id:'dashboard_resumen',    label:'📊 Resumen General' },
+      { id:'dashboard_incidencias',label:'🔧 Incidencias BD' },
+      { id:'dashboard_prioridad',  label:'⚡ Por Prioridad' },
+      { id:'dashboard_venta',      label:'📈 Alerta Venta' },
+      { id:'dashboard_cinepolis',  label:'🎯 Reporte Cinépolis' },
+    ];
+  } else if (rol === 'ejecutivo') {
+    // Solo lectura — ve todo pero no puede modificar nada
+    tabs = [
+      { id:'dashboard',            label:'📊 Resumen General' },
+      { id:'incidencias_cines',    label:'📩 Incidencias Cines', badge:true },
       { id:'dashboard_incidencias',label:'🔧 Incidencias BD' },
       { id:'dashboard_prioridad',  label:'⚡ Por Prioridad' },
       { id:'dashboard_venta',      label:'📈 Alerta Venta' },
