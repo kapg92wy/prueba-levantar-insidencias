@@ -34,18 +34,30 @@ async function cargarDashboardSnapshot() {
 /* ══════════════════════════════════════════════
    RESUMEN GENERAL
 ══════════════════════════════════════════════ */
-function renderDashboard(container) {
+async function renderDashboard(container) {
   const k = D.kpi;
+
+  // KPIs de incidencias registradas en el sistema (Supabase)
+  let enProceso = 0, incAbiertas = 0, conFechaRep = 0;
+  try {
+    const todas = await DB.getIncidencias();
+    incAbiertas  = todas.filter(i => i.estado === 'Abierta').length;
+    enProceso    = todas.filter(i => i.estado === 'En proceso').length;
+    conFechaRep  = todas.filter(i => i.estado === 'En proceso' && i.fecha_reparacion).length;
+  } catch(e) { /* sin datos aún */ }
+
   container.innerHTML =
     '<div class="kgrid">'
-    + kcard('gold',   'Máquinas en Ruta',          k.maquinas_en_ruta||0,            'Total activas en Cinépolis')
-    + kcard('red',    'Incidencias Abiertas',       k.total_incidencias_abiertas||0,  'Status: Abierta')
-    + kcard('red',    'Urgentes',                   k.urgentes||0,                    'Atención inmediata')
-    + kcard('orange', 'Back Order',                 k.back_order||0,                  'En espera de refacción')
-    + kcard('purple', '+90 Días Abiertas',          k.mas_90_dias||0,                 'Críticas por tiempo')
-    + kcard('orange', 'Alerta Venta Cero',          k.alertas_venta_cero||0,          '2+ semanas sin venta')
-    + kcard('cyan',   'Reporte Cinépolis',          k.romel_total||0,                 'Máquinas reportadas')
-    + kcard('red',    'Sin Incidencia Nuestra',     k.romel_no_en_sistema||0,         'Cinépolis reportó, nosotros no')
+    + kcard('gold',   'Máquinas en Ruta',         k.maquinas_en_ruta||0,           'Total activas en Cinépolis')
+    + kcard('red',    'Incidencias Abiertas BD',   k.total_incidencias_abiertas||0, 'Status: Abierta (Excel)')
+    + kcard('red',    'Abiertas en Sistema',       incAbiertas,                     'Reportadas por cines')
+    + kcard('orange', 'En Proceso',                enProceso,                       'Siendo atendidas')
+    + kcard('cyan',   'Con Fecha de Reparación',   conFechaRep,                     'Fecha comprometida activa')
+    + kcard('orange', 'Back Order',                k.back_order||0,                 'En espera de refacción')
+    + kcard('purple', '+90 Días Abiertas',         k.mas_90_dias||0,                'Críticas por tiempo')
+    + kcard('orange', 'Alerta Venta Cero',         k.alertas_venta_cero||0,         '2+ semanas sin venta')
+    + kcard('cyan',   'Reporte Cinépolis',         k.romel_total||0,                'Máquinas reportadas')
+    + kcard('red',    'Sin Incidencia Nuestra',    k.romel_no_en_sistema||0,        'Cinépolis reportó, nosotros no')
     + '</div>'
     + '<div class="cgrid">'
     + '<div class="ccard"><div class="ctitle">Incidencias por Región</div><div class="csub">Total abiertas por región</div><div class="cwrap"><canvas id="cRegion"></canvas></div></div>'
