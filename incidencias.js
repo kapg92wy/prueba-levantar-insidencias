@@ -360,7 +360,8 @@ function filtrarCines() {
   const tb = document.getElementById('tbCinesLista'); if (!tb) return;
   if (!data.length) { tb.innerHTML = '<tr><td colspan="10" class="nodata">Sin resultados</td></tr>'; return; }
 
-  const canDel = currentUser.rol === 'admin';
+  const canEdit = ['mantenimiento','admin'].includes(currentUser.rol);
+  const canDel  = currentUser.rol === 'admin';
   tb.innerHTML = data.map(r => {
     const cn = r.cine.length > 24 ? r.cine.substring(0,22)+'…' : r.cine;
     const nu = r.nombre_usuario || r.usuario_id;
@@ -379,7 +380,7 @@ function filtrarCines() {
       <td style="color:var(--text2);font-size:11px;">${nu}</td>
       <td style="color:var(--text2);">${formatDate(r.created_at)}</td>
       <td style="display:flex;gap:5px;">
-        <button onclick="openModal('${r.id}')" style="background:var(--panel3);border:1px solid var(--border2);color:var(--text);padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;">Gestionar</button>
+        <button onclick="openModal('${r.id}')" style="background:var(--panel3);border:1px solid var(--border2);color:var(--text);padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;">${canEdit ? 'Gestionar' : '👁 Ver'}</button>
         ${canDel ? `<button onclick="deleteIncDirect('${r.id}','${cineSafe}','${r.estado}')" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red);padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer;" title="Eliminar">🗑</button>` : ''}
       </td>
     </tr>`;
@@ -433,9 +434,9 @@ async function openModal(id) {
       </div>
     `).join('') : '<div style="color:var(--text3); font-size:11px;">Sin historial de cambios.</div>';
 
-    const canEditManto = ['mantenimiento','admin'].includes(currentUser.rol) && r.estado !== 'Cerrada';
-    const canConfirmCine = currentUser.rol === 'cinepolis' && r.estado === 'Resuelta';
-    const canDelete = currentUser.rol === 'admin';
+    const canEditManto = ['mantenimiento','admin'].includes(currentUser.rol) && r.estado !== 'Cerrada' && currentUser.rol !== 'ejecutivo';
+    const canConfirmCine = currentUser.rol === 'cinepolis' && r.estado === 'Resuelta' && currentUser.rol !== 'ejecutivo';
+    const canDelete = currentUser.rol === 'admin';  // ejecutivo: solo lectura
     const nota      = r.nota_manto || '';
     const fotoUrl   = r.foto_url   || '';
     const fotoCierre = r.foto_url_cierre || '';
