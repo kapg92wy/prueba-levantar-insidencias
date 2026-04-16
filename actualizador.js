@@ -81,8 +81,22 @@ async function processExcel(file) {
         const vals  = semanaCols.map(c => parseFloat(r[c])||0);
         const avg   = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
         const total = vals.reduce((a,b)=>a+b,0);
-        let maxC=0,cur=0; vals.forEach(v=>{ if(v===0){cur++;maxC=Math.max(maxC,cur);}else{cur=0;} });
-        ventaMap[serie] = { avg_semanal:Math.round(avg), TOTAL_VENTA:Math.round(total), max_consec_zeros:maxC, alerta:maxC>=2 };
+
+        // Contar ceros consecutivos desde el FINAL (semanas más recientes)
+        // Así solo marcamos máquinas que ACTUALMENTE llevan N semanas en $0
+        // no máquinas que tuvieron un bache hace meses y ya se recuperaron
+        let consecFinal = 0;
+        for (let i = vals.length - 1; i >= 0; i--) {
+          if (vals[i] === 0) consecFinal++;
+          else break;
+        }
+
+        ventaMap[serie] = {
+          avg_semanal: Math.round(avg),
+          TOTAL_VENTA: Math.round(total),
+          max_consec_zeros: consecFinal,   // ahora es ceros al final, no el máximo histórico
+          alerta: consecFinal >= 2,
+        };
       });
 
       const incMerged = incOpen.map(r => {
@@ -108,48 +122,6 @@ async function processExcel(file) {
       const incSeries = {}; inc.forEach(r=>{ incSeries[String(r['Serie']||'')] = true; });
       const romelP = romel.map(r => ({ ...r, en_nuestro_sistema: !!incSeries[String(r['SERIE VDJ']||'')] }));
       kpi.romel_no_en_sistema = romelP.filter(r=>!r.en_nuestro_sistema).length;
-
-      // ── Construir catálogo de máquinas desde BD MAQUINAS CINEPOLIS ──────
-      // Columnas confirmadas del Excel real:
-      //   'Nombre'    = nombre de la máquina (SILLON A28, FUTBOLITO CINEPOLIS...)
-      //   'Serie'     = número de serie (03-10892, FUTCPS0001...)
-      //   'Conjunto'  = nombre del cine
-      //   'STATUS'    = EN RUTA, BAJA, etc.
-      //   'Region'    = región
-      //   'Ruta'      = ruta
-      //   'Categoria' = categoría corta (RX, KD, ST...)
-      const colsDisponibles = Object.keys(maq[0] || {});
-
-      const colSerie  = colsDisponibles.includes('Serie')     ? 'Serie'     : colsDisponibles.find(k => /^serie$/i.test(k))   || 'Serie';
-      const colCine   = colsDisponibles.includes('Conjunto')  ? 'Conjunto'  : colsDisponibles.find(k => /conjunto/i.test(k))  || 'Conjunto';
-      const colNombre = colsDisponibles.includes('Nombre')    ? 'Nombre'    : colsDisponibles.find(k => /^nombre$/i.test(k))  || 'Nombre';
-      const colCateg  = colsDisponibles.includes('Categoria') ? 'Categoria' : colsDisponibles.find(k => /categ/i.test(k))     || 'Categoria';
-      const colStatus = colsDisponibles.includes('STATUS')    ? 'STATUS'    : colsDisponibles.find(k => /status/i.test(k))    || 'STATUS';
-      const colRegion = colsDisponibles.includes('Region')    ? 'Region'    : colsDisponibles.find(k => /^regi/i.test(k))     || 'Region';
-      const colRuta   = colsDisponibles.includes('Ruta')      ? 'Ruta'      : colsDisponibles.find(k => /^ruta$/i.test(k))    || 'Ruta';
-
-      const maquinasParaDB = maq
-        .filter(m => String(m[colSerie]||'').trim() !== '')
-        .map(m => {
-          const nombreMaq = String(m[colNombre] || '').trim() || String(m[colCateg] || '').trim() || 'SIN NOMBRE';
-          return {
-            id:        String(m[colSerie]  ||'').trim(),
-            cine:      String(m[colCine]   ||'').trim().toUpperCase(),
-            nombre:    nombreMaq,
-            categoria: String(m[colCateg]  ||'').trim(),
-            status:    String(m[colStatus] ||'EN RUTA').trim().toUpperCase(),
-            region:    String(m[colRegion] ||'').trim(),
-            ruta:      String(m[colRuta]   ||'').trim(),
-            updated_at: new Date().toISOString(),
-          };
-        });
-
-      // Para el catálogo en memoria (D) y para el snapshot
-      const catalogoMaquinas = maquinasParaDB.map(m => ({
-        cine:   m.cine,
-        nombre: m.nombre,
-        serie:  m.id,
-      }));
 
       const colsInc = ['IdIncidencia','IdMaquina','Serie','Prioridad','Clasificacion Incidencia','Nombre de Incidencia','Conjunto','Region','Ruta','Operador','Fecha de Creacion','dias_abierta','Observaciones','avg_semanal','TOTAL_VENTA','alerta_venta'];
       const incTable = incMerged.slice(0,500).map(r => {
@@ -200,43 +172,21 @@ async function processExcel(file) {
       const fecha = ('0'+now.getDate()).slice(-2)+'/'+now.toLocaleString('es-MX',{month:'short'})+'/'+now.getFullYear();
 
       // ── NUEVO: Extraer Catálogo de Máquinas para los combos ──
-      // (ya construido arriba en maquinasParaDB y catalogoMaquinas)
+      const catalogoMaquinas = maq.map(m => ({
+        cine: String(m['Conjunto'] || '').trim().toUpperCase(),
+        nombre: m['Nombre de la maquina'] || m['Categoria'] || 'SIN NOMBRE',
+        serie: m['Serie'] || m['id'] || 'SIN SERIE'
+      }));
 
       const newD = { 
         kpi, incidencias:incTable, venta_alerta:ventaAlerta, romel:romelP,
         by_region:Object.values(byRegion), nombre_count:nombreCountSorted, clasif_count:clasifCount,
         dias_ranges:diasRanges, top_priority:topPriority, semana_cols_last4:last4, 
         fecha_actualizacion:fecha,
-        catalogo_maquinas: catalogoMaquinas
+        catalogo_maquinas: catalogoMaquinas // <--- AGREGAMOS EL CATÁLOGO AQUÍ
       };
 
-      updSetBar(88, `Sincronizando ${maquinasParaDB.length} máquinas en Supabase...`);
-
-      // ── Sincronizar cp_maquinas en Supabase ──────────────────
-      let maqSincronizadas = 0;
-      let maqError = '';
-      try {
-        const res = await DB.sincronizarMaquinas(maquinasParaDB);
-        maqSincronizadas = res.ok;
-      } catch(errMaq) {
-        maqError = errMaq.message;
-        console.error('[actualizador] cp_maquinas sync error:', errMaq.message);
-        // Mostrar error visible en pantalla (no solo toast)
-        document.getElementById('updResult').className = 'upd-result err';
-        document.getElementById('updResult').style.display = 'block';
-        document.getElementById('updResult').innerHTML =
-          `<strong>❌ Error al sincronizar máquinas en Supabase</strong><br>
-           <span style="font-size:12px;">${errMaq.message}</span><br><br>
-           <strong style="color:var(--text);">Posibles causas:</strong><br>
-           <span style="font-size:11px;color:var(--text2);">
-           1. Row Level Security (RLS) activo en cp_maquinas sin política de INSERT/UPDATE<br>
-           2. Ve a Supabase → Authentication → Policies → cp_maquinas → desactiva RLS o agrega política<br>
-           3. O corre en SQL Editor: <code>ALTER TABLE cp_maquinas DISABLE ROW LEVEL SECURITY;</code>
-           </span>`;
-        // No abortar — continuar guardando el snapshot del dashboard
-      }
-
-      updSetBar(94, 'Guardando snapshot en Supabase...');
+      updSetBar(90, 'Guardando en Supabase...');
 
       // ── Guardar en Supabase ──────────────────────
       await DB.guardarDashboard(newD, currentUser.username);
@@ -251,16 +201,15 @@ async function processExcel(file) {
 
       result.className = 'upd-result ok';
       result.style.display = 'block';
-      result.innerHTML = `<strong>✅ Dashboard actualizado en Supabase</strong>
-        ${maqError ? `<br><span style="color:var(--orange);font-size:11px;">⚠️ Máquinas: error parcial — revisa la consola</span>` : ''}
-        <br><span style="font-size:11px;color:var(--text2);">${fecha} · ${maqSincronizadas} de ${maquinasParaDB.length} máquinas sincronizadas · Todos los usuarios verán los nuevos datos.</span>
+      result.innerHTML = `<strong>✅ Dashboard actualizado y guardado en Supabase</strong><br>
+        <span style="font-size:11px;color:var(--text2);">${fecha} · Todos los usuarios verán los nuevos datos al abrir el Dashboard.</span>
         <div class="upd-kpi-grid">
           <div class="upd-kpi"><div class="upd-kpi-val">${kpi.total_incidencias_abiertas.toLocaleString()}</div><div class="upd-kpi-lbl">Incidencias</div></div>
           <div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--red);">${kpi.urgentes}</div><div class="upd-kpi-lbl">Urgentes</div></div>
           <div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--orange);">${kpi.back_order}</div><div class="upd-kpi-lbl">Back Order</div></div>
           <div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--purple);">${kpi.mas_90_dias}</div><div class="upd-kpi-lbl">+90 días</div></div>
           <div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--orange);">${kpi.alertas_venta_cero}</div><div class="upd-kpi-lbl">Alerta Venta</div></div>
-          <div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--gold);">${maqSincronizadas.toLocaleString()}</div><div class="upd-kpi-lbl">Máquinas</div></div>
+          <div class="upd-kpi"><div class="upd-kpi-val" style="color:var(--gold);">${kpi.maquinas_en_ruta.toLocaleString()}</div><div class="upd-kpi-lbl">En Ruta</div></div>
         </div>`;
 
     } catch(err) { showUpdError('Error: ' + err.message); }
