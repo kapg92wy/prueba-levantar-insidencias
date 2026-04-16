@@ -13,6 +13,7 @@ async function renderUsuarios(container) {
       cinepolis:    '<span class="badge bc">Cinépolis</span>',
       mantenimiento:'<span class="badge bo">Mantenimiento</span>',
       admin:        '<span class="badge bp">Admin</span>',
+      ejecutivo:    '<span class="badge bg">Ejecutivo</span>',
     };
 
     container.innerHTML =
@@ -53,55 +54,36 @@ async function renderUsuarios(container) {
 /* ══════════════════════════════════════════════
    MODAL — Gestión de Usuarios (Dinámico)
 ══════════════════════════════════════════════ */
-async function openUserModal(userId) {
+function openUserModal(userId) {
   editingUserId = userId || null;
+  const users = window._cachedUsers || [];
+  const u = userId ? users.find(x => x.id === userId) : null;
 
-  // Abrir modal con loading mientras cargamos datos
-  document.getElementById('userModalTitle').textContent = userId ? 'Editar Usuario' : 'Nuevo Usuario';
-  document.getElementById('userModalContent').innerHTML = loadingHTML('Cargando datos...');
-  document.getElementById('modalUserBg').classList.add('open');
+  // 1. Extraer cines únicos leyendo la variable D directamente (¡Corregido!)
+  const cat = (typeof D !== 'undefined' && D.catalogo_maquinas) ? D.catalogo_maquinas : [];
+  const cinesUnicos = cat.length > 0 ? [...new Set(cat.map(m => m.cine))].sort() : [];
+  
+  const cineOptions = cinesUnicos.length > 0 
+    ? cinesUnicos.map(c => `<option value="${c}" ${u && u.nombre===c ? 'selected':''}>${c}</option>`).join('')
+    : '<option value="">⚠️ Sube el archivo Excel primero para ver los cines</option>';
 
-  // Cargar cines desde Supabase cp_maquinas (fuente de verdad permanente)
-  let cinesUnicos = [];
-  try {
-    cinesUnicos = await DB.getCinesUnicos();
-  } catch(e) {
-    // Fallback al snapshot en memoria
-    console.warn('[openUserModal] getCinesUnicos falló, usando snapshot:', e.message);
-    const cat = (typeof D !== 'undefined' && D.catalogo_maquinas) ? D.catalogo_maquinas : [];
-    cinesUnicos = [...new Set(cat.map(m => m.cine))].sort();
-  }
-
-  // Si estamos editando, obtener datos actuales del usuario
-  let u = null;
-  if (userId) {
-    try {
-      const users = await DB.getUsuarios();
-      window._cachedUsers = users;
-      u = users.find(x => x.id === userId) || null;
-    } catch(e) {
-      u = (window._cachedUsers || []).find(x => x.id === userId) || null;
-    }
-  }
-
-  const cineOptions = cinesUnicos.length > 0
-    ? cinesUnicos.map(c => `<option value="${c}" ${u?.nombre===c?'selected':''}>${c}</option>`).join('')
-    : '<option value="">⚠️ Sube el Excel primero para ver los cines</option>';
-
+  // 2. Función para alternar entre lista de cines y campo de texto
   window.toggleUserForm = function() {
     const rol = document.getElementById('uRol').value;
-    const isCine = (rol === 'cinepolis');
-    document.getElementById('boxNombreCine').style.display   = isCine ? 'block' : 'none';
-    document.getElementById('boxNombreTexto').style.display  = isCine ? 'none'  : 'block';
+    const isCine = (rol === 'cinepolis');  // ejecutivo usa campo texto como manto/admin
+    document.getElementById('boxNombreCine').style.display = isCine ? 'block' : 'none';
+    document.getElementById('boxNombreTexto').style.display = isCine ? 'none' : 'block';
   };
 
   document.getElementById('userModalTitle').textContent = u ? 'Editar Usuario' : 'Nuevo Usuario';
   document.getElementById('userModalContent').innerHTML = `
+    
     <div class="form-group" style="margin-bottom:14px;">
       <label class="form-label">Rol</label>
       <select class="form-select" id="uRol" onchange="toggleUserForm()" ${u && u.username === 'admin' ? 'disabled' : ''}>
         <option value="cinepolis"     ${u?.rol==='cinepolis'?'selected':''}>Cinépolis (Conjunto)</option>
         <option value="mantenimiento" ${u?.rol==='mantenimiento'?'selected':''}>Mantenimiento (Técnico)</option>
+        <option value="ejecutivo"     ${u?.rol==='ejecutivo'?'selected':''}>Ejecutivo (Solo lectura)</option>
         <option value="admin"         ${u?.rol==='admin'?'selected':''}>Admin</option>
       </select>
     </div>
@@ -136,7 +118,13 @@ async function openUserModal(userId) {
     </div>
     <div style="color:var(--red);font-size:12px;margin-top:8px;" id="userFormErr"></div>`;
 
-  toggleUserForm();
+  document.getElementById('modalUserBg').classList.add('open');
+  toggleUserForm(); // Ejecutar al abrir para acomodar las cajas correctamente
+
+  // Si estamos editando, necesitamos los datos actuales del usuario para el form
+  if (userId) {
+    DB.getUsuarios().then(users => { window._cachedUsers = users; }).catch(()=>{});
+  }
 }
 
 async function saveUser() {
