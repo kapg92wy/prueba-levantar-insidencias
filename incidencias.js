@@ -59,36 +59,27 @@ async function renderInicio(container) {
 /* ══════════════════════════════════════════════
    CINE — Reportar Incidencia
 ══════════════════════════════════════════════ */
-async function renderNueva(container) {
+function renderNueva(container) {
   photoBase64 = '';
-  container.innerHTML = loadingHTML('Cargando máquinas de tu cine...');
-
-  // Cargar máquinas de este cine desde Supabase (tabla cp_maquinas)
-  let maqCine = [];
-  try {
-    const nombreCineActual = currentUser.nombre.toUpperCase();
-    maqCine = await DB.getMaquinas(nombreCineActual);
-  } catch(e) {
-    // Si falla Supabase, intentar con el catálogo en memoria del snapshot
-    console.warn('[renderNueva] Falló getMaquinas, usando caché D:', e.message);
-    const nombreCineActual = currentUser.nombre.toUpperCase();
-    maqCine = (D.catalogo_maquinas || [])
-      .filter(m => m.cine === nombreCineActual)
-      .map(m => ({ nombre: m.nombre, id: m.serie }));
-  }
-
-  const nombresUnicos = [...new Set(maqCine.map(m => m.nombre))].sort();
   
-  // Función para llenar series cuando eligen máquina
+  // 1. Filtrar las máquinas del catálogo para ESTE cine en particular
+  const nombreCineActual = currentUser.nombre.toUpperCase();
+  const maqCine = (D.catalogo_maquinas || []).filter(m => m.cine === nombreCineActual);
+  
+  // 2. Extraer nombres de máquinas sin repetir
+  const nombresUnicos = [...new Set(maqCine.map(m => m.nombre))].sort();
+
+  // 3. Función para llenar las series cuando eligen una máquina
   window.actualizarSeries = function() {
     const selNombre = document.getElementById('fNombreMaquina').value;
-    const series = maqCine.filter(m => m.nombre === selNombre).map(m => m.id);
+    const series = maqCine.filter(m => m.nombre === selNombre).map(m => m.serie);
+    
     const comboSerie = document.getElementById('fSerie');
-    if (!series.length) {
-      comboSerie.innerHTML = '<option value="">No hay series disponibles</option>';
+    if (series.length === 0) {
+        comboSerie.innerHTML = '<option value="">No hay series disponibles</option>';
     } else {
-      comboSerie.innerHTML = '<option value="">— Selecciona la Serie —</option>'
-        + series.map(s => `<option value="${s}">${s}</option>`).join('');
+        comboSerie.innerHTML = '<option value="">— Selecciona la Serie —</option>' + 
+                               series.map(s => `<option value="${s}">${s}</option>`).join('');
     }
   };
 
@@ -124,14 +115,6 @@ async function renderNueva(container) {
             <option>PANTALLA / DISPLAY</option>
             <option>VENTA CERO</option>
             <option>OTRO</option>
-          </select>
-        </div>
-        
-        <div class="form-group">
-          <label class="form-label">Prioridad *</label>
-          <select class="form-select" id="fPrioridad">
-            <option value="Normal">Normal</option>
-            <option value="Urgente">🔴 Urgente</option>
           </select>
         </div>
         
@@ -171,7 +154,6 @@ async function submitInc() {
   const maquina   = document.getElementById('fNombreMaquina').value;
   const serie     = document.getElementById('fSerie').value;
   const tipo      = document.getElementById('fTipo').value;
-  const prioridad = document.getElementById('fPrioridad').value;
   const desc      = document.getElementById('fDesc').value.trim();
 
   if (!maquina || !serie || !tipo || !desc) {
@@ -185,7 +167,7 @@ async function submitInc() {
   try {
     const ts  = nowISO();
 
-    // Subir foto al Storage si existe (en vez de guardar base64)
+    // Subir foto al Storage si existe
     let fotoFinalUrl = '';
     const fileInput = document.getElementById('fFoto');
     if (fileInput && fileInput.files && fileInput.files[0]) {
@@ -200,7 +182,6 @@ async function submitInc() {
       serie: serie,
       tipo: maquina,
       clasificacion_falla: tipo,
-      prioridad: prioridad,
       descripcion: desc,
       foto_url: fotoFinalUrl,
       estado: 'Abierta',
@@ -228,7 +209,6 @@ async function submitInc() {
     document.getElementById('fNombreMaquina').value = '';
     document.getElementById('fSerie').innerHTML = '<option value="">Primero selecciona una máquina...</option>';
     document.getElementById('fTipo').value = '';
-    document.getElementById('fPrioridad').value = 'Normal';
     document.getElementById('fDesc').value = '';
     document.getElementById('photoPreview').style.display = 'none';
     document.getElementById('photoPlaceholder').style.display = 'block';
@@ -447,14 +427,12 @@ async function openModal(id) {
     document.getElementById('modalContent').innerHTML = `
       <div class="detail-row"><span class="detail-key">ID</span><span class="detail-val" style="font-family:var(--ff);color:var(--gold);font-weight:700;">${r.id}</span></div>
       <div class="detail-row"><span class="detail-key">Cine</span><span class="detail-val">${r.cine}</span></div>
-      
       <div class="detail-row"><span class="detail-key">Máquina</span><span class="detail-val" style="color:var(--cyan);">${r.tipo || 'N/A'} (Serie: ${r.serie})</span></div>
       <div class="detail-row"><span class="detail-key">Tipo de Falla</span><span class="detail-val">${r.clasificacion_falla || 'N/A'}</span></div>
-      
-      <div class="detail-row"><span class="detail-key">Prioridad</span><span class="detail-val">${prioBadge(r.prioridad)}</span></div>
       <div class="detail-row"><span class="detail-key">Estado Actual</span><span class="detail-val">${estadoBadge(r.estado)}</span></div>
       <div class="detail-row"><span class="detail-key">Reportado por</span><span class="detail-val" style="color:var(--cyan);">${r.nombre_usuario || r.usuario_id}</span></div>
       <div class="detail-row"><span class="detail-key">Fecha de Reporte</span><span class="detail-val">${formatDate(r.created_at)}</span></div>
+      ${r.fecha_reparacion ? `<div class="detail-row"><span class="detail-key" style="color:var(--green);">📅 Fecha de Reparación</span><span class="detail-val" style="color:var(--green);font-weight:600;">${r.fecha_reparacion}</span></div>` : ''}
       <div class="detail-row" style="flex-direction:column;gap:6px;"><span class="detail-key">Descripción</span><span class="detail-val" style="color:var(--text2);line-height:1.6;">${r.descripcion}</span></div>
       
       ${fotoUrl ? `<div class="detail-row" style="margin-top:10px;"><span class="detail-key" style="color:var(--text2);">Evidencia Inicial</span><img src="${fotoUrl}" class="modal-photo" style="margin-top:4px;"></div>` : ''}
@@ -468,10 +446,29 @@ async function openModal(id) {
       ${canEditManto ? `
         <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px;background:var(--bg2);padding:15px;border-radius:8px;">
           <div class="detail-key" style="margin-bottom:8px;color:var(--gold);">Actualizar Estado Operativo</div>
-          <select class="status-select" id="modalStatus" onchange="document.getElementById('cajaFoto').style.display = this.value==='Resuelta' ? 'block' : 'none'">
+          
+          <select class="status-select" id="modalStatus"
+            onchange="
+              document.getElementById('cajaFoto').style.display      = this.value==='Resuelta'    ? 'block' : 'none';
+              document.getElementById('cajaFechaRep').style.display  = this.value==='En proceso'  ? 'block' : 'none';
+            ">
             ${statusOpts}
           </select>
-          
+
+          <!-- Calendario fecha de reparación — solo visible en "En proceso" -->
+          <div id="cajaFechaRep" style="display:${r.estado==='En proceso' ? 'block':'none'}; margin-top:14px;">
+            <label class="form-label" style="color:var(--cyan);">📅 Fecha Comprometida de Reparación</label>
+            ${r.fecha_reparacion
+              ? `<div style="margin-top:6px;padding:10px 14px;background:var(--bg3);border:1px solid var(--green);border-radius:8px;color:var(--green);font-weight:600;font-size:13px;">
+                   🔒 ${r.fecha_reparacion} — fecha bloqueada, no se puede cambiar
+                 </div>`
+              : `<input type="date" id="mFechaRep" class="form-input"
+                   style="margin-top:6px;width:100%;font-size:13px;"
+                   min="${new Date().toISOString().slice(0,10)}">`
+            }
+          </div>
+
+          <!-- Foto de evidencia — solo visible en "Resuelta" -->
           <div id="cajaFoto" style="display:${r.estado==='Resuelta'?'block':'none'}; margin-top:12px;">
             <label class="form-label" style="color:var(--gold);">📸 Subir Evidencia (Requerida para Resuelta)</label>
             <input type="file" id="mFoto" accept="image/*" class="form-input" style="font-size:11px; padding:6px;">
@@ -500,51 +497,77 @@ async function openModal(id) {
 }
 
 async function saveStatus() {
-  const btn = document.getElementById('saveStatusBtn');
-  const estadoNuevo = document.getElementById('modalStatus').value;
-  const nota        = document.getElementById('modalNota').value.trim();
-  const fileInput   = document.getElementById('mFoto');
-  
+  const btn          = document.getElementById('saveStatusBtn');
+  const estadoNuevo  = document.getElementById('modalStatus').value;
+  const nota         = document.getElementById('modalNota').value.trim();
+  const fileInput    = document.getElementById('mFoto');
+  const fechaInput   = document.getElementById('mFechaRep');
+
   btn.disabled = true; btn.textContent = 'Verificando...';
-  
+
   try {
     const r = await DB.getIncidencia(editingIncId);
-    let urlCierre = r.foto_url_cierre || '';
+    let urlCierre      = r.foto_url_cierre  || '';
+    let fechaReparacion = r.fecha_reparacion || null;  // Si ya existe, se respeta (bloqueada)
 
-    // Regla de Negocio: No puede marcar "Resuelta" sin foto
+    // ── Validación: "En proceso" requiere fecha de reparación (si no tiene ya una) ──
+    if (estadoNuevo === 'En proceso' && !fechaReparacion) {
+      const fechaVal = fechaInput ? fechaInput.value : '';
+      if (!fechaVal) {
+        showToast('⚠️ Debes seleccionar una fecha comprometida de reparación.', 'error');
+        btn.disabled = false; btn.textContent = 'Guardar Cambios';
+        return;
+      }
+      fechaReparacion = fechaVal;  // guardar la nueva fecha
+    }
+
+    // ── Validación: "Resuelta" requiere foto ──
     if (estadoNuevo === 'Resuelta' && !urlCierre && (!fileInput || !fileInput.files[0])) {
       showToast('⚠️ Debes subir una foto de evidencia para resolver la incidencia.', 'error');
       btn.disabled = false; btn.textContent = 'Guardar Cambios';
       return;
     }
 
-    // Subir nueva foto si la seleccionó
+    // Subir foto de cierre si la seleccionó
     if (fileInput && fileInput.files && fileInput.files[0]) {
-      btn.textContent = 'Subiendo foto al servidor...';
+      btn.textContent = 'Subiendo foto...';
       urlCierre = await DB.subirFotoResolucion(fileInput.files[0]);
     }
 
     btn.textContent = 'Guardando...';
-    await DB.actualizarIncidencia(editingIncId, { 
-      estado: estadoNuevo, 
-      nota_manto: nota,
-      foto_url_cierre: urlCierre 
-    });
-    
-    await DB.escribirLog({ id: newId('log'), incidencia_id: editingIncId,
+
+    // Construir objeto de actualización
+    const cambios = {
+      estado:          estadoNuevo,
+      nota_manto:      nota,
+      foto_url_cierre: urlCierre,
+    };
+    // Solo guardar fecha_reparacion si hay una (y solo si aún no estaba bloqueada)
+    if (fechaReparacion && !r.fecha_reparacion) {
+      cambios.fecha_reparacion = fechaReparacion;
+    }
+
+    await DB.actualizarIncidencia(editingIncId, cambios);
+
+    await DB.escribirLog({
+      id: newId('log'), incidencia_id: editingIncId,
       usuario_id: currentUser.id, nombre_usuario: currentUser.nombre,
       accion: 'cambio_estado', estado_anterior: r.estado, estado_nuevo: estadoNuevo,
-      nota, created_at: nowISO() });
-      
-    showToast('Incidencia actualizada', 'success');
-    
-    // Actualizar caché y vistas
-    _todasIncs = _todasIncs.map(x => x.id === editingIncId ? {...x, estado: estadoNuevo, nota_manto: nota, foto_url_cierre: urlCierre} : x);
-    if(typeof filtrarCines === 'function') filtrarCines();
+      nota: nota + (fechaReparacion && !r.fecha_reparacion ? ` | Fecha reparación: ${fechaReparacion}` : ''),
+      created_at: nowISO(),
+    });
+
+    showToast('Incidencia actualizada ✓', 'success');
+    _todasIncs = _todasIncs.map(x => x.id === editingIncId
+      ? { ...x, estado: estadoNuevo, nota_manto: nota, foto_url_cierre: urlCierre,
+          fecha_reparacion: fechaReparacion || x.fecha_reparacion }
+      : x);
+    if (typeof filtrarCines === 'function') filtrarCines();
     closeModal();
     updateBadge();
-  } catch(err) { 
-    showToast('Error: ' + err.message, 'error'); 
+
+  } catch(err) {
+    showToast('Error: ' + err.message, 'error');
     btn.disabled = false; btn.textContent = 'Guardar Cambios';
   }
 }
