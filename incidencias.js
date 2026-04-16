@@ -469,10 +469,7 @@ async function openModal(id) {
           <div class="detail-key" style="margin-bottom:8px;color:var(--gold);">Actualizar Estado Operativo</div>
           
           <select class="status-select" id="modalStatus"
-            onchange="
-              document.getElementById('cajaFoto').style.display      = this.value==='Resuelta'    ? 'block' : 'none';
-              document.getElementById('cajaFechaRep').style.display  = this.value==='En proceso'  ? 'block' : 'none';
-            ">
+            onchange="document.getElementById('cajaFechaRep').style.display = this.value==='En proceso' ? 'block' : 'none';">
             ${statusOpts}
           </select>
 
@@ -489,12 +486,6 @@ async function openModal(id) {
             }
           </div>
 
-          <!-- Foto de evidencia — solo visible en "Resuelta" -->
-          <div id="cajaFoto" style="display:${r.estado==='Resuelta'?'block':'none'}; margin-top:12px;">
-            <label class="form-label" style="color:var(--gold);">📸 Subir Evidencia (Requerida para Resuelta)</label>
-            <input type="file" id="mFoto" accept="image/*" class="form-input" style="font-size:11px; padding:6px;">
-          </div>
-
           <textarea class="nota-input" id="modalNota" placeholder="Nota de servicio o reparación..." style="margin-top:12px;">${nota}</textarea>
           <div style="display:flex;gap:10px;margin-top:12px;align-items:center;">
             <button class="save-status-btn" id="saveStatusBtn" onclick="saveStatus()">Guardar Cambios</button>
@@ -503,13 +494,21 @@ async function openModal(id) {
         </div>` : ''}
         
       ${canConfirmCine ? `
-        <div style="margin-top:20px; border:1px solid var(--green); border-radius:8px; padding:15px; text-align:center; background:rgba(34,197,94,0.05);">
-          <div style="font-size:12px; margin-bottom:12px; color:var(--text);">Mantenimiento ha reportado este equipo como <b>Resuelto</b>. Por favor, verifica el equipo.</div>
+        <div style="margin-top:20px; border:1px solid var(--green); border-radius:8px; padding:15px; background:rgba(34,197,94,0.05);">
+          <div style="font-size:13px; font-weight:600; color:var(--green); margin-bottom:10px;">✅ Mantenimiento marcó este equipo como Resuelto</div>
+          <div style="font-size:12px; color:var(--text2); margin-bottom:14px;">Verifica que la máquina funciona correctamente y sube una foto como evidencia para cerrar el ticket.</div>
+          <label class="form-label" style="color:var(--cyan); margin-bottom:6px; display:block;">📸 Foto de Confirmación (obligatoria)</label>
+          <input type="file" id="fotoCierre" accept="image/*" class="form-input" style="font-size:12px; padding:8px; margin-bottom:14px;">
           <button onclick="confirmarCierre()" class="btn-primary" style="background:var(--green); width:100%; font-size:14px; padding:12px;">✅ Confirmar que funciona correctamente</button>
+          <div style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center;">Al confirmar, el ticket se cerrará permanentemente</div>
         </div>
       ` : ''}
       
-      ${r.estado === 'Cerrada' ? `<div style="margin-top:20px; color:var(--green); text-align:center; padding:15px; border:1px dashed var(--green); border-radius:8px; font-weight:bold;">✅ Ticket Cerrado y Confirmado</div>` : ''}
+      ${r.estado === 'Cerrada' ? `
+        <div style="margin-top:20px; text-align:center; padding:15px; border:1px dashed var(--green); border-radius:8px;">
+          <div style="color:var(--green); font-weight:bold; margin-bottom:8px;">✅ Ticket Cerrado y Confirmado por el Cine</div>
+          ${fotoCierre ? `<a href="${fotoCierre}" target="_blank" style="color:var(--cyan);font-size:12px;text-decoration:none;">📸 Ver foto de confirmación del cine</a>` : ''}
+        </div>` : ''}
       `;
 
   } catch(err) {
@@ -521,17 +520,15 @@ async function saveStatus() {
   const btn          = document.getElementById('saveStatusBtn');
   const estadoNuevo  = document.getElementById('modalStatus').value;
   const nota         = document.getElementById('modalNota').value.trim();
-  const fileInput    = document.getElementById('mFoto');
   const fechaInput   = document.getElementById('mFechaRep');
 
   btn.disabled = true; btn.textContent = 'Verificando...';
 
   try {
     const r = await DB.getIncidencia(editingIncId);
-    let urlCierre      = r.foto_url_cierre  || '';
-    let fechaReparacion = r.fecha_reparacion || null;  // Si ya existe, se respeta (bloqueada)
+    let fechaReparacion = r.fecha_reparacion || null;
 
-    // ── Validación: "En proceso" requiere fecha de reparación (si no tiene ya una) ──
+    // "En proceso" requiere fecha de reparación (si no tiene ya una)
     if (estadoNuevo === 'En proceso' && !fechaReparacion) {
       const fechaVal = fechaInput ? fechaInput.value : '';
       if (!fechaVal) {
@@ -539,37 +536,16 @@ async function saveStatus() {
         btn.disabled = false; btn.textContent = 'Guardar Cambios';
         return;
       }
-      fechaReparacion = fechaVal;  // guardar la nueva fecha
-    }
-
-    // ── Validación: "Resuelta" requiere foto ──
-    if (estadoNuevo === 'Resuelta' && !urlCierre && (!fileInput || !fileInput.files[0])) {
-      showToast('⚠️ Debes subir una foto de evidencia para resolver la incidencia.', 'error');
-      btn.disabled = false; btn.textContent = 'Guardar Cambios';
-      return;
-    }
-
-    // Subir foto de cierre si la seleccionó
-    if (fileInput && fileInput.files && fileInput.files[0]) {
-      btn.textContent = 'Subiendo foto...';
-      urlCierre = await DB.subirFotoResolucion(fileInput.files[0]);
+      fechaReparacion = fechaVal;
     }
 
     btn.textContent = 'Guardando...';
-
-    // Construir objeto de actualización
-    const cambios = {
-      estado:          estadoNuevo,
-      nota_manto:      nota,
-      foto_url_cierre: urlCierre,
-    };
-    // Solo guardar fecha_reparacion si hay una (y solo si aún no estaba bloqueada)
+    const cambios = { estado: estadoNuevo, nota_manto: nota };
     if (fechaReparacion && !r.fecha_reparacion) {
       cambios.fecha_reparacion = fechaReparacion;
     }
 
     await DB.actualizarIncidencia(editingIncId, cambios);
-
     await DB.escribirLog({
       id: newId('log'), incidencia_id: editingIncId,
       usuario_id: currentUser.id, nombre_usuario: currentUser.nombre,
@@ -579,11 +555,8 @@ async function saveStatus() {
     });
 
     showToast('Incidencia actualizada ✓', 'success');
-
-    // Actualizar cachés locales inmediatamente (sin esperar red)
     const incActualizada = {
       ...r, estado: estadoNuevo, nota_manto: nota,
-      foto_url_cierre: urlCierre,
       fecha_reparacion: fechaReparacion || r.fecha_reparacion,
     };
     _todasIncs = _todasIncs.map(x => x.id === editingIncId ? incActualizada : x);
@@ -599,21 +572,40 @@ async function saveStatus() {
   }
 }
 
-// Nueva función exclusiva para el usuario del Cine
+// Función exclusiva para el usuario del Cine — cierra el ticket con foto
 async function confirmarCierre() {
-  if(!confirm('¿Estás seguro de que la máquina funciona correctamente? Al aceptar, el ticket se cerrará permanentemente.')) return;
+  const fotoInput = document.getElementById('fotoCierre');
+
+  // Validar que hayan subido foto
+  if (!fotoInput || !fotoInput.files || !fotoInput.files[0]) {
+    showToast('⚠️ Debes subir una foto que confirme que la máquina funciona.', 'error');
+    return;
+  }
+
+  if (!confirm('¿Confirmas que la máquina funciona correctamente? El ticket se cerrará permanentemente.')) return;
+
+  const btn = document.querySelector('button[onclick="confirmarCierre()"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Subiendo foto...'; }
+
   try {
     const r = await DB.getIncidencia(editingIncId);
-    await DB.actualizarIncidencia(editingIncId, { estado: 'Cerrada' });
+
+    // Subir foto de confirmación del cine
+    const urlFotoCierre = await DB.subirFoto(fotoInput.files[0], 'cierres');
+
+    await DB.actualizarIncidencia(editingIncId, {
+      estado: 'Cerrada',
+      foto_url_cierre: urlFotoCierre,
+    });
 
     await DB.escribirLog({ id: newId('log'), incidencia_id: editingIncId,
       usuario_id: currentUser.id, nombre_usuario: currentUser.nombre,
       accion: 'cambio_estado', estado_anterior: r.estado, estado_nuevo: 'Cerrada',
-      nota: 'El Cine validó la reparación y cerró el ticket.', created_at: nowISO() });
+      nota: 'Cine confirmó reparación con foto y cerró el ticket.', created_at: nowISO() });
 
     showToast('Ticket cerrado exitosamente ✓', 'success');
 
-    const incCerrada = { ...r, estado: 'Cerrada' };
+    const incCerrada = { ...r, estado: 'Cerrada', foto_url_cierre: urlFotoCierre };
     _todasIncs = _todasIncs.map(x => x.id === editingIncId ? incCerrada : x);
     _listaIncs = _listaIncs.map(x => x.id === editingIncId ? incCerrada : x);
 
@@ -622,6 +614,7 @@ async function confirmarCierre() {
     updateBadge();
   } catch(err) {
     showToast('Error: ' + err.message, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = '✅ Confirmar que funciona correctamente'; }
   }
 }
 
