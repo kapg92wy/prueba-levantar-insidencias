@@ -17,21 +17,21 @@ async function renderInicio(container) {
     const total     = incs.length;
     const abiertas  = incs.filter(i => i.estado === 'Abierta').length;
     const proceso   = incs.filter(i => i.estado === 'En proceso').length;
-    const urgentes  = incs.filter(i => i.prioridad === 'Urgente' && i.estado !== 'Resuelta').length;
     const resueltas = incs.filter(i => i.estado === 'Resuelta').length;
+    const cerradas  = incs.filter(i => i.estado === 'Cerrada').length;
     const recientes = [...incs].sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).slice(0,10);
 
     container.innerHTML =
       '<div class="kgrid">'
-      + kcard('gold',   'Total',     total,     '')
-      + kcard('red',    'Abiertas',  abiertas,  '')
-      + kcard('orange', 'En Proceso',proceso,   '')
-      + kcard('red',    'Urgentes',  urgentes,  '')
-      + kcard('green',  'Resueltas', resueltas, '')
+      + kcard('gold',   'Total',      total,     '')
+      + kcard('red',    'Abiertas',   abiertas,  '')
+      + kcard('orange', 'En Proceso', proceso,   '')
+      + kcard('green',  'Resueltas',  resueltas, '')
+      + kcard('blue',   'Cerradas',   cerradas,  '')
       + '</div>'
       + '<div class="section-header">MIS ÚLTIMAS INCIDENCIAS</div>'
       + '<div class="twrap"><div class="tscroll"><table>'
-      + '<thead><tr><th>ID</th><th>Cine</th><th>Serie</th><th>Tipo</th><th>Prioridad</th><th>Estado</th><th>Fecha</th></tr></thead>'
+      + '<thead><tr><th>ID</th><th>Máquina</th><th>Serie</th><th>Tipo de Falla</th><th>Estado</th><th>Fecha Rep.</th><th>Fecha</th></tr></thead>'
       + '<tbody id="tbRecientes"></tbody></table></div></div>';
 
     const tb = document.getElementById('tbRecientes');
@@ -40,14 +40,17 @@ async function renderInicio(container) {
       return;
     }
     tb.innerHTML = recientes.map(r => {
-      const cn = r.cine.length > 26 ? r.cine.substring(0,24)+'…' : r.cine;
+      const maq = r.tipo || '—';
+      const fechaRep = r.fecha_reparacion
+        ? `<span style="color:var(--green);font-weight:600;">📅 ${r.fecha_reparacion}</span>`
+        : '<span style="color:var(--text3);">—</span>';
       return `<tr style="cursor:pointer;" onclick="openModal('${r.id}')">
         <td style="font-family:var(--ff);color:var(--gold);font-weight:600;">${r.id}</td>
-        <td title="${r.cine}">${cn}</td>
+        <td>${maq}</td>
         <td style="color:var(--cyan);">${r.serie}</td>
-        <td>${r.tipo}</td>
-        <td>${prioBadge(r.prioridad)}</td>
+        <td>${r.clasificacion_falla || r.tipo || '—'}</td>
         <td>${estadoBadge(r.estado)}</td>
+        <td>${fechaRep}</td>
         <td style="color:var(--text2);">${formatDate(r.created_at)}</td>
       </tr>`;
     }).join('');
@@ -59,27 +62,46 @@ async function renderInicio(container) {
 /* ══════════════════════════════════════════════
    CINE — Reportar Incidencia
 ══════════════════════════════════════════════ */
-function renderNueva(container) {
+async function renderNueva(container) {
   photoBase64 = '';
-  
-  // 1. Filtrar las máquinas del catálogo para ESTE cine en particular
-  const nombreCineActual = currentUser.nombre.toUpperCase();
-  const maqCine = (D.catalogo_maquinas || []).filter(m => m.cine === nombreCineActual);
-  
-  // 2. Extraer nombres de máquinas sin repetir
-  const nombresUnicos = [...new Set(maqCine.map(m => m.nombre))].sort();
+  container.innerHTML = loadingHTML('Cargando máquinas de tu cine...');
 
-  // 3. Función para llenar las series cuando eligen una máquina
+  // Cargar máquinas desde Supabase (tabla cp_maquinas)
+  let maqCine = [];
+  try {
+    const nombreCineActual = currentUser.nombre.toUpperCase();
+    maqCine = await DB.getMaquinas(nombreCineActual);
+  } catch(e) {
+    console.warn('[renderNueva] getMaquinas falló:', e.message);
+  }
+
+  const nombresUnicos = [...new Set(maqCine.map(m => m.nombre))].filter(Boolean).sort();
+
+  // Si no hay máquinas en cp_maquinas, mostrar aviso en vez del formulario
+  if (!nombresUnicos.length) {
+    container.innerHTML = `
+      <div class="form-card" style="text-align:center;padding:40px;">
+        <div style="font-size:36px;margin-bottom:16px;">⚠️</div>
+        <div style="font-family:var(--ff);font-size:18px;font-weight:700;margin-bottom:8px;">No se encontraron máquinas para tu cine</div>
+        <div style="font-size:13px;color:var(--text2);max-width:420px;margin:0 auto;line-height:1.8;">
+          El catálogo de máquinas aún no se ha cargado o tu cine no tiene máquinas registradas.<br><br>
+          Pide al administrador que suba el archivo <strong style="color:var(--gold);">Bases_de_datos.xlsx</strong> 
+          desde la sección <strong>⚡ Actualizar Datos</strong>.
+        </div>
+      </div>`;
+    return;
+  }
+
+  // Función para llenar series al elegir máquina
   window.actualizarSeries = function() {
     const selNombre = document.getElementById('fNombreMaquina').value;
-    const series = maqCine.filter(m => m.nombre === selNombre).map(m => m.serie);
-    
+    const series = maqCine.filter(m => m.nombre === selNombre).map(m => m.id);
     const comboSerie = document.getElementById('fSerie');
-    if (series.length === 0) {
-        comboSerie.innerHTML = '<option value="">No hay series disponibles</option>';
+    if (!series.length) {
+      comboSerie.innerHTML = '<option value="">No hay series disponibles</option>';
     } else {
-        comboSerie.innerHTML = '<option value="">— Selecciona la Serie —</option>' + 
-                               series.map(s => `<option value="${s}">${s}</option>`).join('');
+      comboSerie.innerHTML = '<option value="">— Selecciona la Serie —</option>'
+        + series.map(s => `<option value="${s}">${s}</option>`).join('');
     }
   };
 
@@ -237,15 +259,13 @@ async function renderLista(container) {
   container.innerHTML =
     '<div style="background:rgba(6,182,212,.07);border:1px solid rgba(6,182,212,.2);border-radius:8px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:var(--cyan);">📋 Mostrando solo las incidencias que tú has reportado</div>'
     + '<div class="filters">'
-    + '<span class="flabel">Estado</span><select id="fEstado" onchange="filtrarLista()"><option value="">Todos</option><option>Abierta</option><option>En proceso</option><option>Resuelta</option></select>'
-    + '<span class="flabel">Tipo</span><select id="fTipoF" onchange="filtrarLista()"><option value="">Todos</option><option>OPERANDO PARCIALMENTE</option><option>FUERA DE SERVICIO</option><option>IMAGEN / ESTÉTICA</option><option>MONEDERO / COBRO</option><option>PANTALLA / DISPLAY</option><option>VENTA CERO</option><option>OTRO</option></select>'
-    + '<span class="flabel">Prioridad</span><select id="fPrioF" onchange="filtrarLista()"><option value="">Todas</option><option>Urgente</option><option>Normal</option></select>'
-    + '<input type="text" id="fBuscar" placeholder="Buscar serie, ID..." oninput="filtrarLista()">'
+    + '<span class="flabel">Estado</span><select id="fEstado" onchange="filtrarLista()"><option value="">Todos</option><option>Abierta</option><option>En proceso</option><option>Resuelta</option><option>Cerrada</option></select>'
+    + '<input type="text" id="fBuscar" placeholder="Buscar máquina, serie, ID..." oninput="filtrarLista()">'
     + '<button onclick="limpiarFiltrosLista()" class="btn-ghost" style="padding:5px 12px;font-size:11px;">Limpiar</button>'
     + '<button onclick="recargarLista()" class="btn-ghost" style="padding:5px 12px;font-size:11px;">🔄</button>'
     + '<span class="rcount" id="listaCount"></span></div>'
     + '<div class="twrap"><div class="tscroll"><table>'
-    + '<thead><tr><th>ID</th><th>Cine</th><th>Serie</th><th>Tipo</th><th>Prioridad</th><th>Estado</th><th>Fecha</th><th></th></tr></thead>'
+    + '<thead><tr><th>ID</th><th>Máquina</th><th>Serie</th><th>Tipo de Falla</th><th>Estado</th><th>Fecha Rep.</th><th>Fecha</th><th></th></tr></thead>'
     + '<tbody id="tbLista">' + loadingHTML() + '</tbody></table></div></div>';
   await recargarLista();
 }
@@ -262,15 +282,11 @@ async function recargarLista() {
 
 function filtrarLista() {
   const est = document.getElementById('fEstado')?.value || '';
-  const tip = document.getElementById('fTipoF')?.value  || '';
-  const pri = document.getElementById('fPrioF')?.value  || '';
   const bus = (document.getElementById('fBuscar')?.value || '').toLowerCase();
 
   const data = _listaIncs.filter(r => {
-    if (est && r.estado    !== est) return false;
-    if (tip && r.tipo      !== tip) return false;
-    if (pri && r.prioridad !== pri) return false;
-    if (bus && ![r.cine,r.serie,r.id,r.tipo].join(' ').toLowerCase().includes(bus)) return false;
+    if (est && r.estado !== est) return false;
+    if (bus && ![r.cine,r.serie,r.id,r.tipo,r.clasificacion_falla||''].join(' ').toLowerCase().includes(bus)) return false;
     return true;
   });
 
@@ -280,14 +296,16 @@ function filtrarLista() {
   if (!data.length) { tb.innerHTML = '<tr><td colspan="8" class="nodata">Sin resultados</td></tr>'; return; }
 
   tb.innerHTML = data.map(r => {
-    const cn = r.cine.length > 24 ? r.cine.substring(0,22)+'…' : r.cine;
+    const fechaRep = r.fecha_reparacion
+      ? `<span style="color:var(--green);font-weight:600;">📅 ${r.fecha_reparacion}</span>`
+      : '<span style="color:var(--text3);">—</span>';
     return `<tr>
       <td style="font-family:var(--ff);color:var(--gold);font-weight:600;">${r.id}</td>
-      <td title="${r.cine}">${cn}</td>
+      <td>${r.tipo || '—'}</td>
       <td style="color:var(--cyan);">${r.serie}</td>
-      <td>${r.tipo}</td>
-      <td>${prioBadge(r.prioridad)}</td>
+      <td>${r.clasificacion_falla || '—'}</td>
       <td>${estadoBadge(r.estado)}</td>
+      <td>${fechaRep}</td>
       <td style="color:var(--text2);">${formatDate(r.created_at)}</td>
       <td><button onclick="openModal('${r.id}')" style="background:var(--panel3);border:1px solid var(--border2);color:var(--text);padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;">Ver</button></td>
     </tr>`;
@@ -295,7 +313,7 @@ function filtrarLista() {
 }
 
 function limpiarFiltrosLista() {
-  ['fEstado','fTipoF','fPrioF'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  const el = document.getElementById('fEstado'); if(el) el.value='';
   const fb = document.getElementById('fBuscar'); if(fb) fb.value='';
   filtrarLista();
 }
@@ -307,14 +325,13 @@ async function renderIncidenciasCines(container) {
   container.innerHTML =
     '<div class="section-header">INCIDENCIAS REPORTADAS POR LOS CINES</div>'
     + '<div class="filters">'
-    + '<span class="flabel">Estado</span><select id="fcEstado" onchange="filtrarCines()"><option value="">Todos</option><option>Abierta</option><option>En proceso</option><option>Resuelta</option></select>'
-    + '<span class="flabel">Prioridad</span><select id="fcPrio" onchange="filtrarCines()"><option value="">Todas</option><option>Urgente</option><option>Normal</option></select>'
-    + '<input type="text" id="fcBuscar" placeholder="Buscar cine, serie, ID..." oninput="filtrarCines()">'
+    + '<span class="flabel">Estado</span><select id="fcEstado" onchange="filtrarCines()"><option value="">Todos</option><option>Abierta</option><option>En proceso</option><option>Resuelta</option><option>Cerrada</option></select>'
+    + '<input type="text" id="fcBuscar" placeholder="Buscar cine, máquina, serie..." oninput="filtrarCines()">'
     + '<button onclick="limpiarFiltrosCines()" class="btn-ghost" style="padding:5px 12px;font-size:11px;">Limpiar</button>'
     + '<button onclick="recargarCines()" class="btn-ghost" style="padding:5px 12px;font-size:11px;">🔄 Actualizar</button>'
     + '<span class="rcount" id="cinesCount"></span></div>'
     + '<div class="twrap"><div class="tscroll"><table>'
-    + '<thead><tr><th>ID</th><th>Cine</th><th>Serie</th><th>Tipo</th><th>Prioridad</th><th>Estado</th><th>Reportado por</th><th>Fecha</th><th></th></tr></thead>'
+    + '<thead><tr><th>ID</th><th>Cine</th><th>Máquina</th><th>Serie</th><th>Tipo de Falla</th><th>Estado</th><th>Fecha Rep.</th><th>Reportado por</th><th>Fecha</th><th></th></tr></thead>'
     + '<tbody id="tbCinesLista">' + loadingHTML() + '</tbody></table></div></div>';
   await recargarCines();
 }
@@ -325,38 +342,40 @@ async function recargarCines() {
     filtrarCines();
   } catch(err) {
     const tb = document.getElementById('tbCinesLista');
-    if (tb) tb.innerHTML = `<tr><td colspan="9" class="nodata">${errorBox(err.message)}</td></tr>`;
+    if (tb) tb.innerHTML = `<tr><td colspan="10" class="nodata">${errorBox(err.message)}</td></tr>`;
   }
 }
 
 function filtrarCines() {
   const est = document.getElementById('fcEstado')?.value || '';
-  const pri = document.getElementById('fcPrio')?.value   || '';
   const bus = (document.getElementById('fcBuscar')?.value || '').toLowerCase();
 
   const data = _todasIncs.filter(r => {
-    if (est && r.estado    !== est) return false;
-    if (pri && r.prioridad !== pri) return false;
-    if (bus && ![r.cine,r.serie,r.id,r.tipo,r.nombre_usuario||''].join(' ').toLowerCase().includes(bus)) return false;
+    if (est && r.estado !== est) return false;
+    if (bus && ![r.cine,r.serie,r.id,r.tipo,r.clasificacion_falla||'',r.nombre_usuario||''].join(' ').toLowerCase().includes(bus)) return false;
     return true;
   });
 
   const lc = document.getElementById('cinesCount'); if (lc) lc.textContent = data.length + ' registros';
   const tb = document.getElementById('tbCinesLista'); if (!tb) return;
-  if (!data.length) { tb.innerHTML = '<tr><td colspan="9" class="nodata">Sin resultados</td></tr>'; return; }
+  if (!data.length) { tb.innerHTML = '<tr><td colspan="10" class="nodata">Sin resultados</td></tr>'; return; }
 
   const canDel = currentUser.rol === 'admin';
   tb.innerHTML = data.map(r => {
     const cn = r.cine.length > 24 ? r.cine.substring(0,22)+'…' : r.cine;
     const nu = r.nombre_usuario || r.usuario_id;
     const cineSafe = r.cine.replace(/'/g, "\\'");
+    const fechaRep = r.fecha_reparacion
+      ? `<span style="color:var(--green);font-weight:600;">📅 ${r.fecha_reparacion}</span>`
+      : '<span style="color:var(--text3);">—</span>';
     return `<tr>
       <td style="font-family:var(--ff);color:var(--gold);font-weight:600;">${r.id}</td>
       <td title="${r.cine}">${cn}</td>
+      <td>${r.tipo || '—'}</td>
       <td style="color:var(--cyan);">${r.serie}</td>
-      <td>${r.tipo}</td>
-      <td>${prioBadge(r.prioridad)}</td>
+      <td>${r.clasificacion_falla || '—'}</td>
       <td>${estadoBadge(r.estado)}</td>
+      <td>${fechaRep}</td>
       <td style="color:var(--text2);font-size:11px;">${nu}</td>
       <td style="color:var(--text2);">${formatDate(r.created_at)}</td>
       <td style="display:flex;gap:5px;">
@@ -368,7 +387,7 @@ function filtrarCines() {
 }
 
 function limpiarFiltrosCines() {
-  ['fcEstado','fcPrio'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  const el = document.getElementById('fcEstado'); if(el) el.value='';
   const fb = document.getElementById('fcBuscar'); if(fb) fb.value='';
   filtrarCines();
 }
