@@ -34,40 +34,24 @@ async function cargarDashboardSnapshot() {
 /* ══════════════════════════════════════════════
    RESUMEN GENERAL
 ══════════════════════════════════════════════ */
-async function renderDashboard(container) {
+function renderDashboard(container) {
   const k = D.kpi;
-
-  // KPIs de incidencias registradas en el sistema (Supabase)
-  let enProceso = 0, incAbiertas = 0, conFechaRep = 0;
-  try {
-    const todas = await DB.getIncidencias();
-    incAbiertas  = todas.filter(i => i.estado === 'Abierta').length;
-    enProceso    = todas.filter(i => i.estado === 'En proceso').length;
-    conFechaRep  = todas.filter(i => i.estado === 'En proceso' && i.fecha_reparacion).length;
-  } catch(e) { /* sin datos aún */ }
-
   container.innerHTML =
     '<div class="kgrid">'
-    + kcard('gold',   'Máquinas en Ruta',         k.maquinas_en_ruta||0,           'Total activas en Cinépolis')
-    + kcard('red',    'Incidencias Abiertas BD',   k.total_incidencias_abiertas||0, 'Status: Abierta (Excel)')
-    + kcard('red',    'Abiertas en Sistema',       incAbiertas,                     'Reportadas por cines')
-    + kcard('orange', 'En Proceso',                enProceso,                       'Siendo atendidas')
-    + kcard('cyan',   'Con Fecha de Reparación',   conFechaRep,                     'Fecha comprometida activa')
-    + kcard('orange', 'Back Order',                k.back_order||0,                 'En espera de refacción')
-    + kcard('purple', '+90 Días Abiertas',         k.mas_90_dias||0,                'Críticas por tiempo')
-    + kcard('orange', 'Alerta Venta Cero',         k.alertas_venta_cero||0,         '2+ semanas sin venta')
-    + kcard('cyan',   'Reporte Cinépolis',         k.romel_total||0,                'Máquinas reportadas')
-    + kcard('red',    'Sin Incidencia Nuestra',    k.romel_no_en_sistema||0,        'Cinépolis reportó, nosotros no')
+    + kcard('gold',   'Máquinas en Ruta',          k.maquinas_en_ruta||0,            'Total activas en Cinépolis')
+    + kcard('red',    'Incidencias Abiertas',       k.total_incidencias_abiertas||0,  'Status: Abierta')
+    + kcard('orange', 'Back Order',                 k.back_order||0,                  'En espera de refacción')
+    + kcard('purple', '+90 Días Abiertas',          k.mas_90_dias||0,                 'Críticas por tiempo')
+    + kcard('orange', 'Alerta Venta Cero',          k.alertas_venta_cero||0,          '2+ semanas sin venta')
+    + kcard('cyan',   'Reporte Cinépolis',          k.romel_total||0,                 'Máquinas reportadas')
+    + kcard('red',    'Sin Incidencia Nuestra',     k.romel_no_en_sistema||0,         'Cinépolis reportó, nosotros no')
     + '</div>'
     + '<div class="cgrid">'
     + '<div class="ccard"><div class="ctitle">Incidencias por Región</div><div class="csub">Total abiertas por región</div><div class="cwrap"><canvas id="cRegion"></canvas></div></div>'
     + '<div class="ccard"><div class="ctitle">Tipo de Incidencia</div><div class="csub">Distribución por nombre</div><div class="cwrap"><canvas id="cTipo"></canvas></div></div>'
     + '<div class="ccard"><div class="ctitle">Antigüedad de Incidencias</div><div class="csub">Días desde apertura</div><div class="cwrap"><canvas id="cDias"></canvas></div></div>'
     + '</div>'
-    + '<div class="cgrid2">'
-    + '<div class="ccard"><div class="ctitle">Clasificación</div><div class="csub">Estado de diagnóstico</div><div class="cwrap2"><canvas id="cClasif"></canvas></div></div>'
-    + '<div class="ccard"><div class="ctitle">Urgentes por Región</div><div class="csub">Solo incidencias urgentes</div><div class="cwrap2"><canvas id="cUrg"></canvas></div></div>'
-    + '</div>'
+    + '<div class="ccard" style="margin-bottom:20px;"><div class="ctitle">Clasificación</div><div class="csub">Estado de diagnóstico</div><div class="cwrap2"><canvas id="cClasif"></canvas></div></div>'
     + '<div class="top10-grid">'
     + '<div class="ccard"><div class="ctitle">🏆 Top 10 — Mayor Venta en Riesgo</div><div class="csub">Incidencias abiertas por venta semanal</div><div id="top10Left"></div></div>'
     + '<div class="ccard"><div class="ctitle">⏰ Top 10 — Más Antiguas</div><div class="csub">Incidencias con más días sin resolverse</div><div id="top10Right"></div></div>'
@@ -81,8 +65,8 @@ function buildDashCharts() {
   const byR = [...D.by_region].sort((a,b) => b.total - a.total);
   charts['region'] = new Chart(document.getElementById('cRegion'), {
     type:'bar', data:{ labels:byR.map(r=>r.Region), datasets:[{ data:byR.map(r=>r.total),
-      backgroundColor:byR.map(r=>r.urgentes>0?'rgba(239,68,68,0.65)':'rgba(59,130,246,0.55)'),
-      borderColor:byR.map(r=>r.urgentes>0?'#ef4444':'#3b82f6'), borderWidth:1, borderRadius:3 }]
+      backgroundColor:'rgba(59,130,246,0.55)',
+      borderColor:'#3b82f6', borderWidth:1, borderRadius:3 }]
     }, options:CHARTOPT });
 
   const tk = Object.keys(D.nombre_count).slice(0,7);
@@ -102,10 +86,6 @@ function buildDashCharts() {
     type:'doughnut', data:{ labels:ck, datasets:[{ data:cv, backgroundColor:['rgba(59,130,246,0.8)','rgba(249,115,22,0.8)','rgba(239,68,68,0.8)'], borderColor:'#141c2e', borderWidth:2 }]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'right',labels:{color:'#8b95ab',font:{size:10},boxWidth:10,padding:6}},tooltip:{backgroundColor:'#1f2b45',titleColor:'#e8eaf0',bodyColor:'#8b95ab',borderColor:'#2a3550',borderWidth:1}}}
   });
-
-  const urg = D.by_region.filter(r=>r.urgentes>0).sort((a,b)=>b.urgentes-a.urgentes);
-  charts['urg'] = new Chart(document.getElementById('cUrg'), {
-    type:'bar', data:{ labels:urg.map(r=>r.Region), datasets:[{ data:urg.map(r=>r.urgentes), backgroundColor:'rgba(239,68,68,0.65)', borderColor:'#ef4444', borderWidth:1, borderRadius:3 }]}, options:CHARTOPT });
 }
 
 function buildTop10() {
