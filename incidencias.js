@@ -493,16 +493,33 @@ async function openModal(id) {
           </div>
         </div>` : ''}
         
-      ${canConfirmCine ? `
+      ${canConfirmCine ? (() => {
+        // Calcular horas restantes para auto-cierre
+        let alertaCierre = '';
+        if (r.fecha_resuelta) {
+          const ms = new Date(r.fecha_resuelta).getTime() + 24*60*60*1000 - Date.now();
+          if (ms > 0) {
+            const horas = Math.floor(ms / 3600000);
+            const mins  = Math.floor((ms % 3600000) / 60000);
+            const color = horas < 4 ? 'var(--red)' : horas < 8 ? 'var(--orange)' : 'var(--text2)';
+            alertaCierre = `<div style="font-size:11px;color:${color};text-align:center;margin-bottom:12px;padding:6px;background:var(--bg3);border-radius:6px;">
+              ⏱ Se cierra automáticamente en <strong>${horas}h ${mins}m</strong> si no confirmas
+            </div>`;
+          } else {
+            alertaCierre = `<div style="font-size:11px;color:var(--red);text-align:center;margin-bottom:12px;">⚠️ Plazo vencido — se cerrará en la próxima hora automáticamente</div>`;
+          }
+        }
+        return `
         <div style="margin-top:20px; border:1px solid var(--green); border-radius:8px; padding:15px; background:rgba(34,197,94,0.05);">
           <div style="font-size:13px; font-weight:600; color:var(--green); margin-bottom:10px;">✅ Mantenimiento marcó este equipo como Resuelto</div>
+          ${alertaCierre}
           <div style="font-size:12px; color:var(--text2); margin-bottom:14px;">Verifica que la máquina funciona correctamente y sube una foto como evidencia para cerrar el ticket.</div>
           <label class="form-label" style="color:var(--cyan); margin-bottom:6px; display:block;">📸 Foto de Confirmación (obligatoria)</label>
           <input type="file" id="fotoCierre" accept="image/*" class="form-input" style="font-size:12px; padding:8px; margin-bottom:14px;">
           <button onclick="confirmarCierre()" class="btn-primary" style="background:var(--green); width:100%; font-size:14px; padding:12px;">✅ Confirmar que funciona correctamente</button>
           <div style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center;">Al confirmar, el ticket se cerrará permanentemente</div>
-        </div>
-      ` : ''}
+        </div>`;
+      })() : ''}
       
       ${r.estado === 'Cerrada' ? `
         <div style="margin-top:20px; text-align:center; padding:15px; border:1px dashed var(--green); border-radius:8px;">
