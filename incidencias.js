@@ -403,7 +403,8 @@ async function deleteIncDirect(id, cine, estado) {
       estado_nuevo: '', nota: 'Eliminada desde lista por admin', created_at: nowISO() });
     showToast('Incidencia eliminada', 'success');
     _todasIncs = _todasIncs.filter(x => x.id !== id);
-    filtrarCines();
+    _listaIncs = _listaIncs.filter(x => x.id !== id);
+    await refrescarVistasActivas();
     updateBadge();
   } catch(err) { showToast('Error: ' + err.message, 'error'); }
 }
@@ -578,12 +579,18 @@ async function saveStatus() {
     });
 
     showToast('Incidencia actualizada ✓', 'success');
-    _todasIncs = _todasIncs.map(x => x.id === editingIncId
-      ? { ...x, estado: estadoNuevo, nota_manto: nota, foto_url_cierre: urlCierre,
-          fecha_reparacion: fechaReparacion || x.fecha_reparacion }
-      : x);
-    if (typeof filtrarCines === 'function') filtrarCines();
+
+    // Actualizar cachés locales inmediatamente (sin esperar red)
+    const incActualizada = {
+      ...r, estado: estadoNuevo, nota_manto: nota,
+      foto_url_cierre: urlCierre,
+      fecha_reparacion: fechaReparacion || r.fecha_reparacion,
+    };
+    _todasIncs = _todasIncs.map(x => x.id === editingIncId ? incActualizada : x);
+    _listaIncs = _listaIncs.map(x => x.id === editingIncId ? incActualizada : x);
+
     closeModal();
+    await refrescarVistasActivas();
     updateBadge();
 
   } catch(err) {
@@ -598,23 +605,44 @@ async function confirmarCierre() {
   try {
     const r = await DB.getIncidencia(editingIncId);
     await DB.actualizarIncidencia(editingIncId, { estado: 'Cerrada' });
-    
+
     await DB.escribirLog({ id: newId('log'), incidencia_id: editingIncId,
       usuario_id: currentUser.id, nombre_usuario: currentUser.nombre,
       accion: 'cambio_estado', estado_anterior: r.estado, estado_nuevo: 'Cerrada',
       nota: 'El Cine validó la reparación y cerró el ticket.', created_at: nowISO() });
 
     showToast('Ticket cerrado exitosamente ✓', 'success');
-    _todasIncs = _todasIncs.map(x => x.id === editingIncId ? {...x, estado: 'Cerrada'} : x);
-    
-    // Refrescar vistas locales dependiendo del archivo donde estés
-    if(typeof filtrarCines === 'function') filtrarCines();
-    else if (typeof refreshLista === 'function') refreshLista();
-    
+
+    const incCerrada = { ...r, estado: 'Cerrada' };
+    _todasIncs = _todasIncs.map(x => x.id === editingIncId ? incCerrada : x);
+    _listaIncs = _listaIncs.map(x => x.id === editingIncId ? incCerrada : x);
+
     closeModal();
+    await refrescarVistasActivas();
     updateBadge();
   } catch(err) {
     showToast('Error: ' + err.message, 'error');
+  }
+}
+
+// ── Refresca la vista que esté activa en ese momento ──────────
+// Detecta qué tabla/panel está visible y la actualiza sin recargar página
+async function refrescarVistasActivas() {
+  // Vista de mantenimiento/admin: tabla de incidencias de cines
+  if (document.getElementById('tbCinesLista')) {
+    await recargarCines();
+    return;
+  }
+  // Vista del cine: Mi Panel (renderInicio)
+  if (document.getElementById('tbRecientes')) {
+    const div = document.getElementById('tbRecientes').closest('.tab');
+    if (div) await renderInicio(div.parentElement || div);
+    return;
+  }
+  // Vista del cine: Mis Incidencias (lista)
+  if (document.getElementById('tbLista')) {
+    await recargarLista();
+    return;
   }
 }
 
@@ -629,8 +657,9 @@ async function deleteInc(id, estado) {
       nota: 'Eliminada por admin', created_at: nowISO() });
     showToast('Incidencia eliminada', 'success');
     _todasIncs = _todasIncs.filter(x => x.id !== id);
-    closeModal(); 
-    if(typeof filtrarCines === 'function') filtrarCines();
+    _listaIncs = _listaIncs.filter(x => x.id !== id);
+    closeModal();
+    await refrescarVistasActivas();
     updateBadge();
   } catch(err) { showToast('Error: ' + err.message, 'error'); }
 }
