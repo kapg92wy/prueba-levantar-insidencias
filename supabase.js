@@ -89,13 +89,9 @@ const DB = {
 
   async actualizarIncidencia(id, cambios) {
     cambios.updated_at = new Date().toISOString();
-    // Guardar timestamp exacto cuando se marca Resuelta.
-    // El cron de Supabase lo usa para calcular las 24h del cine.
-    if (cambios.estado === 'Resuelta') {
-      cambios.fecha_resuelta = cambios.updated_at;
-    } else if (cambios.estado && cambios.estado !== 'Resuelta') {
-      cambios.fecha_resuelta = null; // se reabrió, resetear el contador
-    }
+    // Registrar cuándo se marcó Resuelta (para el auto-cierre de 24h)
+    if (cambios.estado === 'Resuelta') cambios.fecha_resuelta = cambios.updated_at;
+    else if (cambios.estado && cambios.estado !== 'Resuelta') cambios.fecha_resuelta = null;
     const { data, error } = await sb
       .from(CONFIG.TABLA_INCIDENCIAS)
       .update(cambios).eq('id', id).select().single();
@@ -168,4 +164,51 @@ const DB = {
     const { data } = sb.storage.from('fotos_incidencias').getPublicUrl(fileName);
     return data.publicUrl;
   }
+  /* ─────────────────────────────────────────────
+     MÁQUINAS (cp_maquinas)
+  ───────────────────────────────────────────── */
+  async getMaquinas(cine) {
+    let q = sb.from('cp_maquinas').select('*').order('nombre');
+    if (cine) q = q.eq('cine', cine);
+    const { data, error } = await q;
+    return sbCheck(data, error, 'getMaquinas');
+  },
+
+  async getCinesUnicos() {
+    const { data, error } = await sb
+      .from('cp_maquinas').select('cine').order('cine');
+    if (error) throw new Error('[getCinesUnicos] ' + error.message);
+    return [...new Set(data.map(r => r.cine))];
+  },
+
+  async sincronizarMaquinas(maquinas) {
+    if (!maquinas || !maquinas.length) return { ok: 0 };
+    const BATCH = 200;
+    let ok = 0;
+    const errores = [];
+    for (let i = 0; i < maquinas.length; i += BATCH) {
+      const lote = maquinas.slice(i, i + BATCH);
+      const { error } = await sb.from('cp_maquinas').upsert(lote, { onConflict: 'id' });
+      if (error) errores.push(`Lote ${Math.floor(i/BATCH)+1}: ${error.message}`);
+      else ok += lote.length;
+    }
+    if (errores.length) throw new Error(errores.join(' | '));
+    return { ok };
+  },
+
+  /* ─────────────────────────────────────────────
+     STORAGE (FOTOS)
+  ───────────────────────────────────────────── */
+  async subirFoto(file, carpeta) {
+    const ext  = file.name.split('.').pop().toLowerCase();
+    const path = `${carpeta||'general'}/${Date.now()}_${Math.random().toString(36).slice(2,6)}.${ext}`;
+    const { error } = await sb.storage.from('fotos_incidencias').upload(path, file, { cacheControl:'3600', upsert:false });
+    if (error) throw new Error('Error al subir foto: ' + error.message);
+    const { data } = sb.storage.from('fotos_incidencias').getPublicUrl(path);
+    return data.publicUrl;
+  },
+
+  async subirFotoResolucion(file) { return this.subirFoto(file, 'resoluciones'); },
+
+
 };
